@@ -2,10 +2,10 @@ const db = require('./db');
 
 async function seedSuperAdmins() {
     const superAdmins = [
-        { email: 'admin1@samanyudu.tv', password: 'adminpassword1', name: 'Super Admin 1', role: 'super_admin' },
-        { email: 'admin2@samanyudu.tv', password: 'adminpassword2', name: 'Super Admin 2', role: 'super_admin' },
-        { email: 'admin3@samanyudu.tv', password: 'adminpassword3', name: 'Super Admin 3', role: 'super_admin' },
-        { email: 'admin4@samanyudu.tv', password: 'adminpassword4', name: 'Super Admin 4', role: 'super_admin' }
+        { email: 'admin1@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 1', role: 'super_admin' },
+        { email: 'admin2@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 2', role: 'super_admin' },
+        { email: 'admin3@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 3', role: 'super_admin' },
+        { email: 'admin4@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 4', role: 'super_admin' }
     ];
 
     try {

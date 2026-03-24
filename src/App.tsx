@@ -36,7 +36,10 @@ import {
   Calendar,
   BarChart2,
   Database,
-  Sparkles
+  Sparkles,
+  Phone,
+  Mail,
+  MessageCircle
 } from 'lucide-react';
 import {
   BarChart,
@@ -53,7 +56,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { toast, Toaster } from 'sonner';
 import logoImage from './assets/logo.png';
-import { NewsItem, ShortItem, NewsType, Advertisement } from './types';
+import { NewsItem, ShortItem, NewsType, Advertisement, MarriageDetails } from './types';
 import { api } from './services/api'; import { pipeline, env } from '@xenova/transformers';
 
 // Configuration for Transformers.js in Browser
@@ -280,6 +283,20 @@ const AnalyticsView = ({ news, shorts }: { news: NewsItem[], shorts: ShortItem[]
 const SettingsView = ({ user }: { user: any }) => {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { enabled } = await api.getMaintenanceStatus();
+        setMaintenanceEnabled(enabled);
+      } catch (err) {
+        console.error('Failed to fetch settings:', err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -294,6 +311,18 @@ const SettingsView = ({ user }: { user: any }) => {
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (e) {
       toast.error("Failed to update password");
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      await api.updateMaintenanceStatus(maintenanceEnabled);
+      toast.success("Settings saved successfully");
+    } catch (err) {
+      toast.error("Failed to save settings");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -387,15 +416,24 @@ const SettingsView = ({ user }: { user: any }) => {
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" />
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={maintenanceEnabled}
+                  onChange={(e) => setMaintenanceEnabled(e.target.checked)}
+                />
                 <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
               </label>
             </div>
           </div>
 
           <div className="pt-4 flex justify-end">
-            <button className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded-lg transition-colors">
-              Save Changes
+            <button
+              onClick={handleSaveSettings}
+              disabled={isSaving}
+              className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
@@ -757,7 +795,7 @@ const ReportersManager = () => {
   );
 };
 
-const MediaPlayer = ({ item, onClose }: { item: NewsItem | ShortItem, onClose: () => void }) => {
+const MediaPlayer = ({ item, onClose, user }: { item: NewsItem | ShortItem, onClose: () => void, user: any }) => {
   const isShort = 'duration' in item;
 
   // --- SHORT VIDEO PLAYER (Vertical) ---
@@ -920,6 +958,16 @@ const MediaPlayer = ({ item, onClose }: { item: NewsItem | ShortItem, onClose: (
   const newsItem = item as NewsItem;
   const { liked, saved, likeCount, handleLike, handleSave, handleShare } = useItemInteractions(newsItem);
 
+  const DetailRow = ({ label, value }: { label: string, value?: string | number | boolean }) => {
+    if (value === undefined || value === null || value === '') return null;
+    return (
+      <div className="flex justify-between items-start text-sm border-b border-slate-800/30 pb-1.5 pt-0.5">
+        <span className="text-slate-500 font-medium shrink-0">{label}:</span>
+        <span className="text-slate-200 text-right ml-4">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <motion.div
@@ -1019,9 +1067,119 @@ const MediaPlayer = ({ item, onClose }: { item: NewsItem | ShortItem, onClose: (
             </div>
           )}
 
-          <div className="text-slate-300 leading-relaxed whitespace-pre-wrap text-base md:text-base border-b border-slate-800 pb-6 mb-4">
+          <div className="text-slate-300 leading-relaxed whitespace-pre-wrap text-base md:text-base border-b border-slate-800 pb-6 mb-6">
             {newsItem.description}
           </div>
+
+          {/* Matrimonial Profile Details (View Mode) */}
+          {newsItem.type === 'Marriage' && newsItem.marriageDetails && (
+            <div className="bg-slate-800/40 rounded-xl border border-slate-700/50 p-6 mb-8 space-y-8 shadow-inner">
+              <div className="flex items-center gap-2 text-yellow-500 font-bold border-b border-slate-700 pb-3">
+                <UserCircle size={22} />
+                <span className="tracking-widest text-sm">MATRIMONIAL PROFILE</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                {/* Basic Details */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                    Basic Details
+                  </h4>
+                  <div className="space-y-1">
+                    <DetailRow label="Full Name" value={newsItem.marriageDetails.full_name} />
+                    <DetailRow label="Gender" value={newsItem.marriageDetails.gender} />
+                    <DetailRow label="Date of Birth" value={newsItem.marriageDetails.date_of_birth} />
+                    <DetailRow label="Age" value={newsItem.marriageDetails.age ? `${newsItem.marriageDetails.age} Years` : ''} />
+                    <DetailRow label="Mother Tongue" value={newsItem.marriageDetails.mother_tongue} />
+                  </div>
+                </div>
+
+                {/* Personal Info */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    Background
+                  </h4>
+                  <div className="space-y-1">
+                    <DetailRow label="Native Place" value={newsItem.marriageDetails.native_place} />
+                    <DetailRow label="Religion" value={newsItem.marriageDetails.religion} />
+                    <DetailRow label="Caste" value={newsItem.marriageDetails.caste} />
+                    <DetailRow label="Sub-Caste" value={newsItem.marriageDetails.sub_caste} />
+                  </div>
+                </div>
+
+                {/* Education & Career */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    Career
+                  </h4>
+                  <div className="space-y-1">
+                    <DetailRow label="Highest Education" value={newsItem.marriageDetails.highest_education} />
+                    <DetailRow label="College" value={newsItem.marriageDetails.college_name} />
+                    <DetailRow label="Occupation" value={newsItem.marriageDetails.occupation} />
+                    <DetailRow label="Company" value={newsItem.marriageDetails.company_name} />
+                    <DetailRow label="Annual Income" value={newsItem.marriageDetails.annual_income} />
+                  </div>
+                </div>
+
+                {/* Family Details */}
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                    Family
+                  </h4>
+                  <div className="space-y-1">
+                    <DetailRow label="Father Name" value={newsItem.marriageDetails.father_name} />
+                    <DetailRow label="Father Occupation" value={newsItem.marriageDetails.father_occupation} />
+                    <DetailRow label="Mother Name" value={newsItem.marriageDetails.mother_name} />
+                    <DetailRow label="Mother Occupation" value={newsItem.marriageDetails.mother_occupation} />
+                    <DetailRow label="Siblings" value={newsItem.marriageDetails.siblings} />
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                {(newsItem.marriageDetails.is_contact_visible || user?.role === 'super_admin') && (
+                  <div className="md:col-span-2 space-y-4 pt-6 mt-2 border-t border-slate-700/50">
+                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"></div>
+                      Contact Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700/30">
+                        <div className="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
+                          <Phone size={16} />
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-[10px] text-slate-500 uppercase font-bold">Phone</p>
+                          <p className="text-sm font-medium text-white truncate">{newsItem.marriageDetails.phone_number}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700/30">
+                        <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 shrink-0">
+                          <MessageCircle size={16} />
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-[10px] text-slate-500 uppercase font-bold">WhatsApp</p>
+                          <p className="text-sm font-medium text-white truncate">{newsItem.marriageDetails.whatsapp_number}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700/30 md:col-span-2 lg:col-span-1">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+                          <Mail size={16} />
+                        </div>
+                        <div className="overflow-hidden">
+                          <p className="text-[10px] text-slate-500 uppercase font-bold">Email</p>
+                          <p className="text-sm font-medium text-white truncate">{newsItem.marriageDetails.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
 
         </div>
@@ -1185,10 +1343,11 @@ const NewsForm = ({
     imageUrl: initialData?.imageUrl || '',
     videoUrl: initialData?.videoUrl || '',
     author: initialData?.author || user?.name || 'Admin',
-    status: initialData?.status || (isSubAdmin ? 'pending' : 'published')
+    status: initialData?.status || (isSubAdmin ? 'pending' : 'published'),
+    marriageDetails: initialData?.marriageDetails || {} as MarriageDetails
   });
 
-  const newsTypes: NewsType[] = ['Political', 'Accident', 'Education', 'Crime', 'Weather', 'Sports', 'Business', 'Social', 'Others'];
+  const newsTypes: NewsType[] = ['Political', 'Accident', 'Education', 'Crime', 'Weather', 'Sports', 'Business', 'Social', 'Marriage', 'Live', 'Others'];
   const [uploading, setUploading] = useState(false);
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -1512,6 +1671,289 @@ const NewsForm = ({
                 <p className="text-xs text-slate-500 mt-1">Add a YouTube or streaming URL for live coverage.</p>
               </div>
 
+              {/* Matrimonial Section */}
+              {formData.type === 'Marriage' && (
+                <div className="p-5 bg-slate-800/40 rounded-xl border border-slate-700 space-y-6 mt-6">
+                  <div className="flex items-center gap-2 text-yellow-500 font-bold border-b border-slate-700 pb-3">
+                    <UserCircle size={20} />
+                    <span className="tracking-wide">MATRIMONIAL PROFILE DETAILS</span>
+                  </div>
+
+                  {/* Basic Details */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <div className="w-1 h-3 bg-yellow-500 rounded-full"></div>
+                      Basic Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Full Name</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.full_name || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, full_name: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                          placeholder="e.g. Satish Kumar"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Gender</label>
+                        <select
+                          value={formData.marriageDetails?.gender || 'Male'}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, gender: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors appearance-none"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">DOB</label>
+                          <input
+                            type="text"
+                            value={formData.marriageDetails?.date_of_birth || ''}
+                            onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, date_of_birth: e.target.value } })}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                            placeholder="DD/MM/YYYY"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Age</label>
+                          <input
+                            type="number"
+                            value={formData.marriageDetails?.age || ''}
+                            onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, age: parseInt(e.target.value) || 0 } })}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                            placeholder="Age"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Personal Info */}
+                  <div className="space-y-4 pt-4 border-t border-slate-700/50">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <div className="w-1 h-3 bg-blue-500 rounded-full"></div>
+                      Personal Info
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Native Place</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.native_place || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, native_place: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Religion</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.religion || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, religion: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Caste</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.caste || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, caste: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Sub-Caste</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.sub_caste || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, sub_caste: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Mother Tongue</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.mother_tongue || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, mother_tongue: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Education & Career */}
+                  <div className="space-y-4 pt-4 border-t border-slate-700/50">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <div className="w-1 h-3 bg-green-500 rounded-full"></div>
+                      Education & Career
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Highest Education</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.highest_education || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, highest_education: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">College Name</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.college_name || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, college_name: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Occupation</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.occupation || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, occupation: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Company Name</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.company_name || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, company_name: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Annual Income</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.annual_income || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, annual_income: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                          placeholder="e.g. 12 LPA"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Family Details */}
+                  <div className="space-y-4 pt-4 border-t border-slate-700/50">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <div className="w-1 h-3 bg-purple-500 rounded-full"></div>
+                      Family Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Father's Name</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.father_name || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, father_name: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Father's Occ.</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.father_occupation || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, father_occupation: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Mother's Name</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.mother_name || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, mother_name: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Mother's Occ.</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.mother_occupation || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, mother_occupation: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Siblings</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.siblings || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, siblings: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                          placeholder="e.g. 1 Brother, 2 Sisters"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Details */}
+                  <div className="space-y-4 pt-4 border-t border-slate-700/50">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <div className="w-1 h-3 bg-red-500 rounded-full"></div>
+                      Contact Details
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Phone Number</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.phone_number || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, phone_number: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">WhatsApp</label>
+                        <input
+                          type="text"
+                          value={formData.marriageDetails?.whatsapp_number || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, whatsapp_number: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">Email</label>
+                        <input
+                          type="email"
+                          value={formData.marriageDetails?.email || ''}
+                          onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, email: e.target.value } })}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-500 outline-none transition-colors"
+                        />
+                      </div>
+                      <div className="md:col-span-2 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-white">Contact Visibility</p>
+                          <p className="text-[10px] text-slate-500">Show phone and email to the public users?</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.marriageDetails?.is_contact_visible || false}
+                            onChange={e => setFormData({ ...formData, marriageDetails: { ...formData.marriageDetails, is_contact_visible: e.target.checked } })}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Media */}
               <div className="space-y-3 pt-2">
                 <div className="flex justify-between items-center">
@@ -1552,9 +1994,21 @@ const NewsForm = ({
                             alt="Preview"
                             className="h-24 w-full object-cover rounded mb-2"
                             onError={(e) => {
-                              console.error("Image failed to load:", formData.imageUrl);
+                              const currentSrc = e.currentTarget.src;
+                              console.error("Image failed to load:", currentSrc);
+                              
+                              // If it's an R2 URL and we haven't tried the fallback yet
+                              if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
+                                const filename = currentSrc.split('/').pop()?.split('?')[0];
+                                if (filename) {
+                                  e.currentTarget.src = `https://api.samanyudutv.in/api/uploads/${filename}?fallback=true`;
+                                  toast.info("R2 DNS not ready. Using local server fallback...");
+                                  return;
+                                }
+                              }
+                              
                               e.currentTarget.src = 'https://placehold.co/600x400?text=Load+Error';
-                              toast.error("Image uploaded but failed to display correctly. Using local server fallback if R2 DNS is not configured.");
+                              toast.error("Image display failed. Check Cloudflare R2 DNS configuration.");
                             }}
                           />
                           <button
@@ -1937,7 +2391,7 @@ const NewsManager = ({ news, setNews, onViewItem, user }: { news: NewsItem[], se
             className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-500"
           >
             <option value="All">All Categories</option>
-            {['Political', 'Accident', 'Education', 'Crime', 'Weather', 'Sports', 'Business', 'Social', 'Others'].map(t => (
+            {['Political', 'Accident', 'Education', 'Crime', 'Weather', 'Sports', 'Business', 'Social', 'Marriage', 'Others'].map(t => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -2090,6 +2544,7 @@ const NewsManager = ({ news, setNews, onViewItem, user }: { news: NewsItem[], se
 
       {isFormOpen && (
         <NewsForm
+          key={editingItem?.id || 'new'}
           initialData={editingItem}
           onSave={handleSave}
           onCancel={() => { setIsFormOpen(false); setEditingItem(null); }}
@@ -2263,9 +2718,54 @@ const NewsApprovalManager = ({ pendingNews, setPendingNews, setNews }: { pending
                     <span className="px-3 py-1 bg-slate-800 rounded-full text-xs text-slate-400 border border-slate-700">Time: {new Date(selectedItem.timestamp).toLocaleString()}</span>
                   </div>
 
-                  <div className="text-slate-300 leading-relaxed whitespace-pre-wrap font-serif break-words">
+                  <div className="text-slate-300 leading-relaxed whitespace-pre-wrap font-serif break-words border-b border-slate-800 pb-6 mb-6">
                     {selectedItem.description}
                   </div>
+
+                  {/* Matrimonial Profile Details (Review Mode) */}
+                  {selectedItem.type === 'Marriage' && selectedItem.marriageDetails && (
+                    <div className="bg-slate-800/40 rounded-xl border border-slate-700/50 p-6 mb-4 space-y-8">
+                      <div className="flex items-center gap-2 text-yellow-500 font-bold border-b border-slate-700 pb-3">
+                        <UserCircle size={22} />
+                        <span className="tracking-widest text-sm uppercase">Matrimonial Review Profile</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Basic Details</p>
+                          <div className="flex justify-between border-b border-slate-800/30 pb-1 text-sm"><span className="text-slate-500">Full Name</span><span className="text-white">{selectedItem.marriageDetails.full_name}</span></div>
+                          <div className="flex justify-between border-b border-slate-800/30 pb-1 text-sm"><span className="text-slate-500">Gender</span><span className="text-white">{selectedItem.marriageDetails.gender}</span></div>
+                          <div className="flex justify-between border-b border-slate-800/30 pb-1 text-sm"><span className="text-slate-500">Date of Birth</span><span className="text-white">{selectedItem.marriageDetails.date_of_birth}</span></div>
+                          <div className="flex justify-between border-b border-slate-800/30 pb-1 text-sm"><span className="text-slate-500">Age</span><span className="text-white">{selectedItem.marriageDetails.age}</span></div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Education & Occupation</p>
+                          <div className="flex justify-between border-b border-slate-800/30 pb-1 text-sm"><span className="text-slate-500">Education</span><span className="text-white truncate max-w-[150px]">{selectedItem.marriageDetails.highest_education}</span></div>
+                          <div className="flex justify-between border-b border-slate-800/30 pb-1 text-sm"><span className="text-slate-500">Occupation</span><span className="text-white">{selectedItem.marriageDetails.occupation}</span></div>
+                          <div className="flex justify-between border-b border-slate-800/30 pb-1 text-sm"><span className="text-slate-500">Income</span><span className="text-white">{selectedItem.marriageDetails.annual_income}</span></div>
+                        </div>
+
+                        <div className="md:col-span-2 pt-4 border-t border-slate-700/30">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Contact Details</p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50 flex flex-col">
+                              <span className="text-[9px] text-slate-500 uppercase">Phone</span>
+                              <span className="text-xs text-white break-all">{selectedItem.marriageDetails.phone_number}</span>
+                            </div>
+                            <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50 flex flex-col">
+                              <span className="text-[9px] text-slate-500 uppercase">WhatsApp</span>
+                              <span className="text-xs text-white break-all">{selectedItem.marriageDetails.whatsapp_number}</span>
+                            </div>
+                            <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50 flex flex-col">
+                              <span className="text-[9px] text-slate-500 uppercase">Email</span>
+                              <span className="text-xs text-white break-all truncate">{selectedItem.marriageDetails.email}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -3176,13 +3676,13 @@ export default function App() {
             )}
 
             {viewingMedia && (
-              <MediaPlayer item={viewingMedia} onClose={() => setViewingMedia(null)} />
+              <MediaPlayer item={viewingMedia} onClose={() => setViewingMedia(null)} user={adminUser} />
             )}
           </div>
         </main>
       </div>
       {viewingMedia && (
-        <MediaPlayer item={viewingMedia} onClose={() => setViewingMedia(null)} />
+        <MediaPlayer item={viewingMedia} onClose={() => setViewingMedia(null)} user={adminUser} />
       )}
     </div>
   );

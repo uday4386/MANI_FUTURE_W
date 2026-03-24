@@ -65,6 +65,43 @@ CREATE TABLE IF NOT EXISTS news_comments (
     comment_text TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+-- Table: marriage_profiles
+CREATE TABLE IF NOT EXISTS marriage_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    news_id UUID UNIQUE REFERENCES news(id) ON DELETE CASCADE,
+    full_name VARCHAR,
+    gender VARCHAR,
+    date_of_birth DATE,
+    age INT,
+    profile_photo VARCHAR,
+    location VARCHAR,
+    native_place VARCHAR,
+    religion VARCHAR,
+    caste VARCHAR,
+    sub_caste VARCHAR,
+    mother_tongue VARCHAR,
+    highest_education VARCHAR,
+    college_name VARCHAR,
+    occupation VARCHAR,
+    company_name VARCHAR,
+    annual_income VARCHAR,
+    father_name VARCHAR,
+    father_occupation VARCHAR,
+    mother_name VARCHAR,
+    mother_occupation VARCHAR,
+    siblings VARCHAR,
+    phone_number VARCHAR,
+    email VARCHAR,
+    whatsapp_number VARCHAR,
+    is_contact_visible BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+-- Table: app_settings
+CREATE TABLE IF NOT EXISTS app_settings (
+    key VARCHAR PRIMARY KEY,
+    value JSONB,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 -- Table: shorts
 CREATE TABLE IF NOT EXISTS shorts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

@@ -4,14 +4,14 @@ This guide outlines the complete process for migrating away from managed Supabas
 
 ## Target Architecture
 
-1.  **Hosting & Compute:** Hetzner VPS
+1.  **Hosting & Compute:** DigitalOcean Droplet
     *   **OS:** Ubuntu 24.04 LTS
     *   **Backend API:** Node.js (Express) or Python (FastAPI). We will build this to replace the automatic Supabase API.
     *   **Admin Panel:** React Web App (hosted via Nginx or Docker on the VPS).
     *   **Reverse Proxy / Web Server:** Nginx (to handle SSL/TLS via Let's Encrypt and route traffic).
 
 2.  **Database:** PostgreSQL
-    *   Hosted directly on the Hetzner VPS (or a managed Hetzner Database for easier backups/maintenance).
+    *   Hosted directly on the DigitalOcean Droplet (or a managed managed PostgreSQL service for easier backups/maintenance).
     *   We will migrate the schema and data from Supabase.
 
 3.  **Storage:** Cloudflare R2
@@ -24,10 +24,10 @@ This guide outlines the complete process for migrating away from managed Supabas
         *   Firebase Auth (Free for OTP/Phone, easy to integrate into Flutter and React).
         *   Custom JWT implementation built directly into our new Node.js backend.
 
-## Phase 1: Setup Infrastructure (Hetzner & Cloudflare)
+## Phase 1: Setup Infrastructure (DigitalOcean & Cloudflare)
 
-### Step 1: Provision Hetzner VPS
-1. Create a Hetzner Cloud account.
+### Step 1: Provision DigitalOcean Droplet
+1. Create a DigitalOcean account.
 2. Spin up an Ubuntu server. (A CX22 or CPX21 is a great, cheap starting point).
 3. Secure the server: Set up SSH keys, disable password login, configure UFW (Firewall) to only allow ports 22 (SSH), 80 (HTTP), and 443 (HTTPS).
 
@@ -52,8 +52,8 @@ Supabase gives you a magic API to talk to your database. Since we are leaving Su
 ## Phase 3: Database Migration
 
 1. **Export from Supabase:** Go to your Supabase dashboard and export your entire database schema and data as a `.sql` file.
-2. **Install PostgreSQL on Hetzner:** `sudo apt install postgresql`.
-3. **Import Data:** Run the `.sql` file against your new Hetzner PostgreSQL instance.
+2. **Install PostgreSQL on DigitalOcean:** `sudo apt install postgresql`.
+3. **Import Data:** Run the `.sql` file against your new PostgreSQL instance.
 
 ## Phase 4: Mobile App & Admin Panel Adjustments
 
@@ -64,10 +64,11 @@ Supabase gives you a magic API to talk to your database. Since we are leaving Su
 
 ### In the React Admin Panel (`Admin_Portal`):
 1. Similarly, remove the Supabase JS client.
-2. Update all data fetching to use standard `fetch()` or `axios` calls pointing to your new Hetzner API instance.
+2. Update all data fetching to use standard `fetch()` or `axios` calls pointing to your new DigitalOcean API instance.
 3. Handle file uploads by sending them to your Node.js backend to stream to Cloudflare R2.
 
 ## Next Steps to Begin
 If you want to start this journey, we should tackle it one phase at a time to prevent breaking the currently working system. 
 
 **Recommended First Step:** Let's build the **Node.js Backend API sandbox** alongside your current project to start mirroring the database structure.
+

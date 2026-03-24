@@ -1,15 +1,52 @@
 import { NewsItem, ShortItem, NewsType } from '../types';
 
-// const API_URL = 'http://64.227.166.123/api';
-const API_URL = 'http://localhost:5000/api';
+const normalizeApiBase = (value: string): string => value.replace(/\/+$/, '');
+
+const resolveApiUrl = (): string => {
+    // Runtime override support (if a config script sets this global)
+    const runtimeBase =
+        typeof window !== 'undefined'
+            ? (window as any).SAMANYUDU_API_BASE || (window as any).__SAMANYUDU_API_BASE
+            : '';
+    if (runtimeBase && typeof runtimeBase === 'string') return normalizeApiBase(runtimeBase);
+
+    // Build-time override
+    const envBase = import.meta.env.VITE_API_URL;
+    if (envBase && typeof envBase === 'string') return normalizeApiBase(envBase);
+
+    // Safe production default: same-origin via nginx reverse proxy
+    return '/api';
+};
+
+const API_URL = resolveApiUrl();
+
+const getErrorMessage = async (res: Response, fallback: string): Promise<string> => {
+    try {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            const body = await res.json();
+            if (body?.error) return `${fallback}: ${body.error}`;
+            if (body?.message) return `${fallback}: ${body.message}`;
+        } else {
+            const text = (await res.text()).trim();
+            if (text) return `${fallback}: ${text}`;
+        }
+    } catch {
+        // Use fallback below
+    }
+    return `${fallback} (HTTP ${res.status})`;
+};
 
 export const normalizeMediaUrl = (url: string | undefined): string => {
     if (!url) return '';
-    if (!import.meta.env.PROD) {
-        // Replace any IP address based URL (e.g. http://172.16.x.x:5000/uploads) with localhost
-        return url.replace(/^http:\/\/[0-9.]+:5000\/uploads/, 'http://localhost:5000/uploads');
-    }
-    return url;
+    return url
+        .replace(/^http:\/\/api\.samanyudutv\.in/i, 'https://api.samanyudutv.in')
+        .replace(/^http:\/\/localhost:5000/i, 'https://api.samanyudutv.in')
+        .replace(/^http:\/\/127\.0\.0\.1:5000/i, 'https://api.samanyudutv.in')
+        .replace(
+            /^http:\/\/[0-9.]+:5000\/uploads/i,
+            'https://api.samanyudutv.in/api/uploads'
+        );
 };
 
 export const api = {
@@ -20,22 +57,23 @@ export const api = {
             url += `?role=${role}&district=${encodeURIComponent(district)}`;
         }
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to fetch news');
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch news'));
         const data = await res.json();
 
         return data.map((item: any) => ({
             id: item.id,
             title: item.title,
             description: item.description,
-            imageUrl: item.image_url,
-            videoUrl: item.video_url,
+            imageUrl: normalizeMediaUrl(item.image_url),
+            videoUrl: normalizeMediaUrl(item.video_url),
             area: item.area,
             type: item.type as NewsType,
             isBreaking: item.is_breaking,
             liveLink: item.live_link,
             timestamp: item.timestamp,
             author: item.author || 'Admin',
-            status: item.status as 'published' | 'pending' | 'rejected'
+            status: item.status as 'published' | 'pending' | 'rejected',
+            marriageDetails: item.marriage_details
         })) as NewsItem[];
     },
 
@@ -54,9 +92,10 @@ export const api = {
                 live_link: news.liveLink,
                 author: news.author || 'Admin',
                 status: news.status || 'published',
+                marriage_details: news.marriageDetails,
             })
         });
-        if (!res.ok) throw new Error('Failed to create news');
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to create news'));
         return await res.json();
     },
 
@@ -71,6 +110,7 @@ export const api = {
         if (news.isBreaking !== undefined) updates.is_breaking = news.isBreaking;
         if (news.liveLink !== undefined) updates.live_link = news.liveLink;
         if (news.status !== undefined) updates.status = news.status;
+        if (news.marriageDetails !== undefined) updates.marriage_details = news.marriageDetails;
 
         const res = await fetch(`${API_URL}/news/${id}`, {
             method: 'PUT',
@@ -87,14 +127,26 @@ export const api = {
     },
 
     async archiveNews() {
-        const res = await fetch(`${API_URL}/admin/news/archive`);
-        if (!res.ok) throw new Error('Failed to archive news');
+        // Prefer Word export for better Telugu text rendering than PDF on some servers.
+        const res = await fetch(`${API_URL}/admin/news/archive?format=doc`);
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to archive news'));
 
+        const contentDisposition = res.headers.get('content-disposition') || '';
+        const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Samanyudu_TV_Archive_${Date.now()}.pdf`;
+        if (fileNameMatch?.[1]) {
+            a.download = fileNameMatch[1];
+        } else if (contentType.includes('application/msword') || contentType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+            a.download = `Samanyudu_TV_Archive_${Date.now()}.doc`;
+        } else if (contentType.includes('application/json')) {
+            a.download = `Samanyudu_TV_Archive_${Date.now()}.json`;
+        } else {
+            a.download = `Samanyudu_TV_Archive_${Date.now()}.pdf`;
+        }
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -113,13 +165,13 @@ export const api = {
             url += `?role=${role}&district=${encodeURIComponent(district)}`;
         }
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Failed to fetch shorts');
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch shorts'));
         const data = await res.json();
 
         return data.map((item: any) => ({
             id: item.id,
             title: item.title,
-            videoUrl: item.video_url,
+            videoUrl: normalizeMediaUrl(item.video_url),
             duration: item.duration,
             timestamp: item.timestamp,
             area: item.area,
@@ -166,12 +218,12 @@ export const api = {
     // --- ADVERTISEMENTS ---
     async getAdvertisements() {
         const res = await fetch(`${API_URL}/advertisements`);
-        if (!res.ok) throw new Error('Failed to fetch advertisements');
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch advertisements'));
         const data = await res.json();
 
         return data.map((item: any) => ({
             id: item.id,
-            mediaUrl: item.media_url,
+            mediaUrl: normalizeMediaUrl(item.media_url),
             intervalMinutes: item.interval_minutes,
             clickUrl: item.click_url,
             displayInterval: item.display_interval,
@@ -196,8 +248,9 @@ export const api = {
         const data = await res.json();
         return {
             id: data.id,
-            mediaUrl: data.media_url,
+            mediaUrl: normalizeMediaUrl(data.media_url),
             intervalMinutes: data.interval_minutes,
+            displayInterval: data.display_interval,
             clickUrl: data.click_url,
             isActive: data.is_active,
             timestamp: data.timestamp
@@ -221,7 +274,7 @@ export const api = {
         const data = await res.json();
         return {
             id: data.id,
-            mediaUrl: data.media_url,
+            mediaUrl: normalizeMediaUrl(data.media_url),
             intervalMinutes: data.interval_minutes,
             displayInterval: data.display_interval,
             clickUrl: data.click_url,
@@ -248,14 +301,15 @@ export const api = {
         });
 
         if (!res.ok) {
-            console.error("Backend Upload Error");
-            throw new Error('Upload failed');
+            const msg = await getErrorMessage(res, 'Upload failed');
+            console.error("Backend Upload Error:", msg);
+            throw new Error(msg);
         }
 
         const data = await res.json();
         console.log("Upload successful, public URL:", data.url);
 
-        return data.url;
+        return normalizeMediaUrl(data.url);
     },
 
     // --- ADMIN MANAGEMENT ---
@@ -346,5 +400,22 @@ export const api = {
     async deleteComment(id: string, type: 'news' | 'shorts') {
         const res = await fetch(`${API_URL}/${type}/comments/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Failed to delete comment');
+    },
+
+    // --- SYSTEM SETTINGS ---
+    async getMaintenanceStatus() {
+        const res = await fetch(`${API_URL}/admin/settings/maintenance`);
+        if (!res.ok) throw new Error('Failed to fetch maintenance status');
+        return await res.json();
+    },
+
+    async updateMaintenanceStatus(enabled: boolean) {
+        const res = await fetch(`${API_URL}/admin/settings/maintenance`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled })
+        });
+        if (!res.ok) throw new Error('Failed to update maintenance status');
+        return await res.json();
     }
 };

@@ -98,10 +98,7 @@
     if (window.SAMANYUDU_API_BASE) return window.SAMANYUDU_API_BASE;
     var saved = localStorage.getItem("samanyudu_api_base");
     if (saved) return saved;
-    if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
-      return "http://127.0.0.1:5000/api";
-    }
-    return "/api";
+    return "https://api.samanyudutv.in/api";
   }
 
   function normalize(item) {
@@ -261,6 +258,15 @@
   injectLanguageControl();
   applyStaticLanguage();
   renderNewsPage();
+
+  // Auto-refresh news every 60 seconds without page refresh
+  setInterval(function () {
+    var page = (document.body && document.body.dataset && document.body.dataset.page) || "";
+    // Only auto-poll on listing pages, not while reading a specific article
+    if (page && page !== "article") {
+      renderNewsPage();
+    }
+  }, 60000);
 
   var form = document.querySelector("[data-contact-form]");
   if (form) {

@@ -1,4 +1,32 @@
-export type NewsType = 'Political' | 'Accident' | 'Education' | 'Crime' | 'Weather' | 'Sports' | 'Business' | 'Social' | 'Classifieds' | 'Jobs' | 'Real Estate' | 'Others';
+export type NewsType = 'Political' | 'Accident' | 'Education' | 'Crime' | 'Weather' | 'Sports' | 'Business' | 'Social' | 'Classifieds' | 'Jobs' | 'Real Estate' | 'Marriage' | 'Live' | 'Others';
+
+export interface MarriageDetails {
+    full_name?: string;
+    gender?: string;
+    date_of_birth?: string;
+    age?: number;
+    profile_photo?: string;
+    location?: string;
+    native_place?: string;
+    religion?: string;
+    caste?: string;
+    sub_caste?: string;
+    mother_tongue?: string;
+    highest_education?: string;
+    college_name?: string;
+    occupation?: string;
+    company_name?: string;
+    annual_income?: string;
+    father_name?: string;
+    father_occupation?: string;
+    mother_name?: string;
+    mother_occupation?: string;
+    siblings?: string;
+    phone_number?: string;
+    email?: string;
+    whatsapp_number?: string;
+    is_contact_visible?: boolean;
+}
 
 export interface NewsItem {
     id: string;
@@ -15,6 +43,7 @@ export interface NewsItem {
     status?: 'published' | 'pending' | 'rejected';
     likes?: number;
     commentsCount?: number;
+    marriageDetails?: MarriageDetails;
 }
 
 export interface ShortItem {

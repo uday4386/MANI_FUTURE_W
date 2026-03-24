@@ -1,18 +1,29 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { Client } = require('pg');
 const fs = require('fs');
-const path = require('path');
 const csv = require('csv-parser');
 
 const orderedTables = [
     'admin_users',
     'advertisements',
     'news',
+    'marriage_profiles',
     'shorts',
     'news_likes',
     'shorts_likes',
     'shorts_comments'
 ];
+
+function resolveSslConfig() {
+    const flag = (process.env.DATABASE_SSL || '').toLowerCase();
+    const pgsslmode = (process.env.PGSSLMODE || '').toLowerCase();
+
+    if (flag === 'false' || flag === '0' || pgsslmode === 'disable') return false;
+    if (flag === 'true' || flag === '1' || pgsslmode === 'require') return { rejectUnauthorized: false };
+
+    return process.env.DATABASE_URL ? { rejectUnauthorized: false } : false;
+}
 
 async function initialize() {
     console.log("Attempting to initialize database...");
@@ -21,7 +32,7 @@ async function initialize() {
     if (process.env.DATABASE_URL) {
         connectionConfig = {
             connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false }
+            ssl: resolveSslConfig()
         };
     } else {
         connectionConfig = {
@@ -73,11 +84,12 @@ async function initialize() {
         }
 
         // Add default superadmin since the CSV was missing the password field
-        await client.query("INSERT INTO admin_users (email, password, name, role) VALUES ('superadmin1@samanyudu.tv', 'admin123', 'Super Admin 1', 'super_admin') ON CONFLICT (email) DO NOTHING;");
-        console.log("Default superadmin created: superadmin1@samanyudu.tv / admin123");
+        await client.query("INSERT INTO admin_users (email, password, name, role) VALUES ('superadmin1@samanyudu.tv', 'SamanyuduKill@2026S', 'Super Admin 1', 'super_admin') ON CONFLICT (email) DO NOTHING;");
+        console.log("Default superadmin created: superadmin1@samanyudu.tv / SamanyuduKill@2026S");
         console.log("✅ DB INITIALIZATION COMPLETE");
     } catch (e) {
         console.error("❌ DB Initialization Error:", e.message);
+        process.exit(1);
     } finally {
         await client.end();
     }

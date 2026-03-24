@@ -2,12 +2,14 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
-const db = require('./db');
 const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const archiver = require('archiver');
 const fetch = require('node-fetch'); // For AuthKey API
+// const { api } = require('./services/api');
+const db = require('./db');
+// const { pipeline, env } = require('@xenova/transformers');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
@@ -27,6 +29,14 @@ const app = express();
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='name') THEN
                     ALTER TABLE users ADD COLUMN name VARCHAR;
+                END IF;
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key VARCHAR PRIMARY KEY,
+                    value JSONB,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'marriage_profiles_news_id_key') THEN
+                    ALTER TABLE marriage_profiles ADD CONSTRAINT marriage_profiles_news_id_key UNIQUE (news_id);
                 END IF;
             END $$;`);
         console.log('Database schema checked and updated.');
@@ -209,11 +219,17 @@ app.post('/api/auth/send-otp', async (req, res) => {
         phone = phone.replace(/\D/g, '');
         if (phone.length === 10) phone = '91' + phone;
 
-        // Check for existing user before sending OTP
+        // Check for existing user before sending OTP (Only if type is explicitly 'signup')
         const { rows: userCheck } = await db.query('SELECT 1 FROM users WHERE phone = $1', [phone.substring(phone.length - 10)]);
-        if (userCheck.length > 0) {
-            return res.status(400).json({ error: 'మొబైల్ నంబర్ ఇప్పటికే నమోదు చేయబడింది. దయచేసి లాగిన్ చేయండి.' }); // Translated: Mobile number already registered. Please login.
+        const { type } = req.body;
+
+        if (type === 'signup' && userCheck.length > 0) {
+            return res.status(400).json({ error: 'మొబైల్ నంబర్ ఇప్పటికే నమోదు చేయబడింది. దయచేసి లాగిన్ చేయండి.' });
         }
+        if ((type === 'reset' || type === 'login') && userCheck.length === 0) {
+            return res.status(404).json({ error: 'ఈ మొబైల్ నంబర్ ఇంకా నమోదు కాలేదు. దయచేసి ముందుగా నమోదు చేసుకోండి.' }); // Account not found
+        }
+        // If no type specified (legacy app), we allow it to proceed to support both signup/reset.
 
         // 1. Try Message Central (Primary)
         if (MESSAGE_CENTRAL_CUSTOMER_ID && MESSAGE_CENTRAL_API_KEY) {
@@ -230,9 +246,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
                         countryCode: '91',
                         mobileNumber: phone.substring(phone.length - 10),
                         flowId: 'default', // Using your default flow
-                        flowType: 'SMS',   // Force SMS flow
+                        flowType: 'SMS',   // Try SMS first
                         type: 'OTP',       // Verication type
-                        isFallbackEnable: false // DISABLE VOICE FALLBACK
+                        isFallbackEnable: true // ENABLE VOICE FALLBACK
                     };
 
                     console.log(`[OTP] Requesting SMS from MC for ${phone}...`);
@@ -606,7 +622,8 @@ app.post('/api/auth/login-otp', async (req, res) => {
 // 3. Login with Email and Password
 app.post('/api/auth/login-email', async (req, res) => {
     try {
-        const passTrimmed = String(password).trim();
+        const { email, password } = req.body;
+        const passTrimmed = String(password || '').trim();
 
         const { rows } = await db.query('SELECT * FROM users WHERE email = $1 AND password = $2', [email, passTrimmed]);
         if (rows.length === 0) {
@@ -762,7 +779,25 @@ app.post('/api/admin/settings/maintenance', async (req, res) => {
 
 app.get('/api/admin/news/archive', async (req, res) => {
     try {
-        const { rows } = await db.query('SELECT * FROM news ORDER BY timestamp DESC');
+        const query = `
+            SELECT n.*, 
+                   (SELECT json_build_object(
+                       'full_name', m.full_name, 'gender', m.gender, 'date_of_birth', m.date_of_birth,
+                       'age', m.age, 'profile_photo', m.profile_photo, 'location', m.location,
+                       'native_place', m.native_place, 'religion', m.religion, 'caste', m.caste,
+                       'sub_caste', m.sub_caste, 'mother_tongue', m.mother_tongue,
+                       'highest_education', m.highest_education, 'college_name', m.college_name,
+                       'occupation', m.occupation, 'company_name', m.company_name,
+                       'annual_income', m.annual_income, 'father_name', m.father_name,
+                       'father_occupation', m.father_occupation, 'mother_name', m.mother_name,
+                       'mother_occupation', m.mother_occupation, 'siblings', m.siblings,
+                       'phone_number', m.phone_number, 'email', m.email,
+                       'whatsapp_number', m.whatsapp_number, 'is_contact_visible', m.is_contact_visible
+                   ) FROM marriage_profiles m WHERE m.news_id = n.id) as marriage_details
+            FROM news n
+            ORDER BY n.timestamp DESC
+        `;
+        const { rows } = await db.query(query);
         const requestedFormat = String(req.query.format || '').toLowerCase();
         const forceJson = requestedFormat === 'json';
         const forceDoc = requestedFormat === 'doc' || requestedFormat === 'word' || requestedFormat === 'docx';
@@ -979,15 +1014,31 @@ app.delete('/api/admin/news/wipe', async (req, res) => {
 app.get('/api/news', async (req, res) => {
     try {
         const { district, role } = req.query;
-        let query = 'SELECT * FROM news';
+        let query = `
+            SELECT n.*, 
+                   (SELECT json_build_object(
+                       'full_name', m.full_name, 'gender', m.gender, 'date_of_birth', m.date_of_birth,
+                       'age', m.age, 'profile_photo', m.profile_photo, 'location', m.location,
+                       'native_place', m.native_place, 'religion', m.religion, 'caste', m.caste,
+                       'sub_caste', m.sub_caste, 'mother_tongue', m.mother_tongue,
+                       'highest_education', m.highest_education, 'college_name', m.college_name,
+                       'occupation', m.occupation, 'company_name', m.company_name,
+                       'annual_income', m.annual_income, 'father_name', m.father_name,
+                       'father_occupation', m.father_occupation, 'mother_name', m.mother_name,
+                       'mother_occupation', m.mother_occupation, 'siblings', m.siblings,
+                       'phone_number', m.phone_number, 'email', m.email,
+                       'whatsapp_number', m.whatsapp_number, 'is_contact_visible', m.is_contact_visible
+                   ) FROM marriage_profiles m WHERE m.news_id = n.id) as marriage_details
+            FROM news n
+        `;
         let params = [];
 
         if (role === 'sub_admin' && district) {
-            query += ' WHERE area = $1';
+            query += ' WHERE n.area = $1';
             params.push(district);
         }
 
-        query += ' ORDER BY timestamp DESC';
+        query += ' ORDER BY n.timestamp DESC';
         const { rows } = await db.query(query, params);
         res.json(rows);
     } catch (error) {
@@ -998,7 +1049,10 @@ app.get('/api/news', async (req, res) => {
 
 app.post('/api/news', async (req, res) => {
     try {
-        const { title, description, category, img_url, image_url, video_url, location, is_breaking, live_link, status, author, area, type } = req.body;
+        const { 
+            title, description, category, img_url, image_url, video_url, location, 
+            is_breaking, live_link, status, author, area, type, marriage_details 
+        } = req.body;
 
         // Normalize fields
         const finalImageUrl = img_url || image_url;
@@ -1012,10 +1066,75 @@ app.post('/api/news', async (req, res) => {
       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *;
         `;
-        // We map category to type or area depending on the frontend payload, using area/type here as named in schema
         const values = [title, description, finalArea, finalType, finalImageUrl, video_url, is_breaking || false, live_link, status || 'published', author || 'Admin'];
         const { rows } = await db.query(query, values);
-        res.status(201).json(rows[0]);
+        const news = rows[0];
+
+        // Handle Matrimonial Profile if category is Marriage
+        if ((finalType === 'Marriage' || finalType === 'పెళ్లి పందిరి') && marriage_details) {
+            const m = marriage_details;
+            const mQuery = `
+                INSERT INTO marriage_profiles (
+                    news_id, full_name, gender, date_of_birth, age, profile_photo, 
+                    location, native_place, religion, caste, sub_caste, mother_tongue, 
+                    highest_education, college_name, occupation, company_name, annual_income, 
+                    father_name, father_occupation, mother_name, mother_occupation, siblings, 
+                    phone_number, email, whatsapp_number, is_contact_visible
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+            `;
+            const mValues = [
+                news.id, 
+                m.full_name ?? null, 
+                m.gender ?? null, 
+                m.date_of_birth ?? null, 
+                m.age ? parseInt(m.age) : null, 
+                m.profile_photo ?? null,
+                m.location ?? null, 
+                m.native_place ?? null, 
+                m.religion ?? null, 
+                m.caste ?? null, 
+                m.sub_caste ?? null, 
+                m.mother_tongue ?? null,
+                m.highest_education ?? null, 
+                m.college_name ?? null, 
+                m.occupation ?? null, 
+                m.company_name ?? null, 
+                m.annual_income ?? null,
+                m.father_name ?? null, 
+                m.father_occupation ?? null, 
+                m.mother_name ?? null, 
+                m.mother_occupation ?? null, 
+                m.siblings ?? null,
+                m.phone_number ?? null, 
+                m.email ?? null, 
+                m.whatsapp_number ?? null, 
+                m.is_contact_visible === true || m.is_contact_visible === 'true'
+            ];
+            await db.query(mQuery, mValues);
+            
+            // Re-fetch to include marriage data in response
+            const fullNewsResult = await db.query(`
+                SELECT n.*, 
+                       (SELECT json_build_object(
+                           'full_name', m.full_name, 'gender', m.gender, 'date_of_birth', m.date_of_birth,
+                           'age', m.age, 'profile_photo', m.profile_photo, 'location', m.location,
+                           'native_place', m.native_place, 'religion', m.religion, 'caste', m.caste,
+                           'sub_caste', m.sub_caste, 'mother_tongue', m.mother_tongue,
+                           'highest_education', m.highest_education, 'college_name', m.college_name,
+                           'occupation', m.occupation, 'company_name', m.company_name,
+                           'annual_income', m.annual_income, 'father_name', m.father_name,
+                           'father_occupation', m.father_occupation, 'mother_name', m.mother_name,
+                           'mother_occupation', m.mother_occupation, 'siblings', m.siblings,
+                           'phone_number', m.phone_number, 'email', m.email,
+                           'whatsapp_number', m.whatsapp_number, 'is_contact_visible', m.is_contact_visible
+                       ) FROM marriage_profiles m WHERE m.news_id = n.id) as marriage_details
+                FROM news n 
+                WHERE n.id = $1
+            `, [news.id]);
+            return res.status(201).json(fullNewsResult.rows[0]);
+        }
+
+        res.status(201).json(news);
     } catch (error) {
         console.error('Error inserting news:', error);
         res.status(500).json({ error: 'Failed to create news', details: error.message });
@@ -1025,23 +1144,103 @@ app.post('/api/news', async (req, res) => {
 app.put('/api/news/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
-        const keys = Object.keys(updates);
+        const body = req.body;
+        const marriage_details = body.marriage_details;
+        delete body.marriage_details; // Remove from news table updates
 
-        if (keys.length === 0) return res.status(400).json({ error: 'No fields to update' });
+        const keys = Object.keys(body);
+        if (keys.length === 0 && !marriage_details) return res.status(400).json({ error: 'No fields to update' });
 
-        const setClause = keys.map((k, i) => `"${k}" = $${i + 1} `).join(', ');
-        const values = Object.values(updates);
-        values.push(id);
+        if (keys.length > 0) {
+            const setClause = keys.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
+            const values = Object.values(body);
+            values.push(id);
+            await db.query(`UPDATE news SET ${setClause} WHERE id = $${values.length}`, values);
+        }
 
-        const query = `UPDATE news SET ${setClause} WHERE id = $${values.length} RETURNING *; `;
-        const { rows } = await db.query(query, values);
+        if (marriage_details) {
+            console.log('Processing marriage details update for news:', id);
+            const m = marriage_details;
+            // Use ON CONFLICT to insert or update marriage profile
+            const mQuery = `
+                INSERT INTO marriage_profiles (
+                    news_id, full_name, gender, date_of_birth, age, profile_photo, 
+                    location, native_place, religion, caste, sub_caste, mother_tongue, 
+                    highest_education, college_name, occupation, company_name, annual_income, 
+                    father_name, father_occupation, mother_name, mother_occupation, siblings, 
+                    phone_number, email, whatsapp_number, is_contact_visible
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+                ON CONFLICT (news_id) DO UPDATE SET
+                    full_name = EXCLUDED.full_name, gender = EXCLUDED.gender, date_of_birth = EXCLUDED.date_of_birth,
+                    age = EXCLUDED.age, profile_photo = EXCLUDED.profile_photo, location = EXCLUDED.location,
+                    native_place = EXCLUDED.native_place, religion = EXCLUDED.religion, caste = EXCLUDED.caste,
+                    sub_caste = EXCLUDED.sub_caste, mother_tongue = EXCLUDED.mother_tongue,
+                    highest_education = EXCLUDED.highest_education, college_name = EXCLUDED.college_name,
+                    occupation = EXCLUDED.occupation, company_name = EXCLUDED.company_name,
+                    annual_income = EXCLUDED.annual_income, father_name = EXCLUDED.father_name,
+                    father_occupation = EXCLUDED.father_occupation, mother_name = EXCLUDED.mother_name,
+                    mother_occupation = EXCLUDED.mother_occupation, siblings = EXCLUDED.siblings,
+                    phone_number = EXCLUDED.phone_number, email = EXCLUDED.email,
+                    whatsapp_number = EXCLUDED.whatsapp_number, is_contact_visible = EXCLUDED.is_contact_visible
+            `;
+            const mValues = [
+                id,
+                m.full_name ?? null,
+                m.gender ?? null,
+                m.date_of_birth ?? null,
+                m.age ? parseInt(m.age) : null,
+                m.profile_photo ?? null,
+                m.location ?? null,
+                m.native_place ?? null,
+                m.religion ?? null,
+                m.caste ?? null,
+                m.sub_caste ?? null,
+                m.mother_tongue ?? null,
+                m.highest_education ?? null,
+                m.college_name ?? null,
+                m.occupation ?? null,
+                m.company_name ?? null,
+                m.annual_income ?? null,
+                m.father_name ?? null,
+                m.father_occupation ?? null,
+                m.mother_name ?? null,
+                m.mother_occupation ?? null,
+                m.siblings ?? null,
+                m.phone_number ?? null,
+                m.email ?? null,
+                m.whatsapp_number ?? null,
+                m.is_contact_visible === true || m.is_contact_visible === 'true'
+            ];
+            await db.query(mQuery, mValues);
+        }
 
-        if (rows.length === 0) return res.status(404).json({ error: 'News not found' });
-        res.json(rows[0]);
+        // Re-fetch and return the full updated news record
+        const fullNewsResult = await db.query(`
+            SELECT n.*, 
+                   (SELECT json_build_object(
+                       'full_name', m.full_name, 'gender', m.gender, 'date_of_birth', m.date_of_birth,
+                       'age', m.age, 'profile_photo', m.profile_photo, 'location', m.location,
+                       'native_place', m.native_place, 'religion', m.religion, 'caste', m.caste,
+                       'sub_caste', m.sub_caste, 'mother_tongue', m.mother_tongue,
+                       'highest_education', m.highest_education, 'college_name', m.college_name,
+                       'occupation', m.occupation, 'company_name', m.company_name,
+                       'annual_income', m.annual_income, 'father_name', m.father_name,
+                       'father_occupation', m.father_occupation, 'mother_name', m.mother_name,
+                       'mother_occupation', m.mother_occupation, 'siblings', m.siblings,
+                       'phone_number', m.phone_number, 'email', m.email,
+                       'whatsapp_number', m.whatsapp_number, 'is_contact_visible', m.is_contact_visible
+                   ) FROM marriage_profiles m WHERE m.news_id = n.id) as marriage_details
+            FROM news n 
+            WHERE n.id = $1
+        `, [id]);
+
+        if (fullNewsResult.rows.length === 0) {
+            return res.status(404).json({ error: 'News not found after update' });
+        }
+        res.json(fullNewsResult.rows[0]);
     } catch (error) {
-        console.error('Error updating news:', error);
-        res.status(500).json({ error: 'Failed to update news' });
+        console.error('Error updating news (Detailed):', error);
+        res.status(500).json({ error: 'Failed to update news: ' + error.message });
     }
 });
 
@@ -1572,23 +1771,64 @@ app.post('/api/auth/register-email', async (req, res) => {
     }
 });
 
+// Image Proxy for CanvasKit
+const https = require('https');
+app.get('/api/image-proxy', (req, res) => {
+    const imageUrl = req.query.url;
+    if (!imageUrl) return res.status(400).send('URL required');
+    https.get(imageUrl, (response) => {
+        if (response.headers['content-type']) {
+            res.setHeader('Content-Type', response.headers['content-type']);
+        }
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        response.pipe(res);
+    }).on('error', (e) => res.status(500).send(e.message));
+});
+
+// Settings Routes
+app.get('/api/settings', async (req, res) => {
+    try {
+        const { rows } = await db.query('SELECT * FROM app_settings');
+        const settings = {};
+        rows.forEach(r => settings[r.key] = r.value);
+        res.json(settings);
+    } catch (error) {
+        console.error('Fetch settings error:', error);
+        res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+});
+
+app.post('/api/settings', async (req, res) => {
+    try {
+        const { key, value } = req.body;
+        if (!key) return res.status(400).json({ error: 'Key is required' });
+        await db.query('INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', [key, JSON.stringify(value)]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Update settings error:', error);
+        res.status(500).json({ error: 'Failed to update settings' });
+    }
+});
+
 // Start server
-app.listen(port, () => {
-    console.log(`🚀 API Backend running on http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`🚀 API Backend running on http://0.0.0.0:${port}`);
 });
 
 
 // Auto-initialize settings table
-(async () => {
+async function init() {
     try {
-        const db = require('./db');
         await db.query('CREATE TABLE IF NOT EXISTS app_settings (key VARCHAR PRIMARY KEY, value JSONB)');
         await db.query("INSERT INTO app_settings (key, value) VALUES ('maintenance_mode', 'false') ON CONFLICT (key) DO NOTHING");
+        await db.query("INSERT INTO app_settings (key, value) VALUES ('live_youtube_url', '\"\"') ON CONFLICT (key) DO NOTHING");
         console.log('✅ Settings table initialized');
     } catch (err) {
         console.error('❌ Failed to initialize settings table:', err.message);
     }
-})();
+}
 
+init();
 
 
