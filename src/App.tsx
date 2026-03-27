@@ -1351,6 +1351,16 @@ const NewsForm = ({
   const [uploading, setUploading] = useState(false);
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
+  const [tempVideoUrl, setTempVideoUrl] = useState<string | null>(null);
+
+  // Cleanup object URLs to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (tempImageUrl) URL.revokeObjectURL(tempImageUrl);
+      if (tempVideoUrl) URL.revokeObjectURL(tempVideoUrl);
+    };
+  }, [tempImageUrl, tempVideoUrl]);
 
   const handleGenerateImage = async () => {
     if (!formData.title || !formData.description) {
@@ -1498,6 +1508,17 @@ const NewsForm = ({
     console.log(`Selected file for ${type}:`, file.name);
 
     setUploading(true);
+    
+    // Create local preview immediately
+    const objectUrl = URL.createObjectURL(file);
+    if (type === 'image') {
+      if (tempImageUrl) URL.revokeObjectURL(tempImageUrl);
+      setTempImageUrl(objectUrl);
+    } else {
+      if (tempVideoUrl) URL.revokeObjectURL(tempVideoUrl);
+      setTempVideoUrl(objectUrl);
+    }
+
     try {
       const url = await api.uploadFile(file);
       console.log(`Received URL for ${type}:`, url);
@@ -1986,11 +2007,14 @@ const NewsForm = ({
                     />
                     <div className={`border-2 border-dashed ${formData.imageUrl ? 'border-green-500 bg-green-500/10' : 'border-slate-700 bg-slate-800/50'} rounded-lg p-6 flex flex-col items-center justify-center hover:border-yellow-500/50 transition-colors`}>
                       {uploading ? (
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-500"></div>
-                      ) : formData.imageUrl ? (
+                        <div className="flex flex-col items-center">
+                          {tempImageUrl && <img src={tempImageUrl} className="h-20 w-20 object-cover rounded opacity-50 mb-2" alt="Uploading..." />}
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-500"></div>
+                        </div>
+                      ) : (formData.imageUrl || tempImageUrl) ? (
                         <div className="w-full relative group/preview">
                           <img
-                            src={formData.imageUrl}
+                            src={tempImageUrl || formData.imageUrl}
                             alt="Preview"
                             className="h-24 w-full object-cover rounded mb-2"
                             onError={(e) => {
@@ -2017,6 +2041,10 @@ const NewsForm = ({
                               e.preventDefault();
                               e.stopPropagation();
                               setFormData(prev => ({ ...prev, imageUrl: '' }));
+                              if (tempImageUrl) {
+                                URL.revokeObjectURL(tempImageUrl);
+                                setTempImageUrl(null);
+                              }
                               toast.info("Image removed");
                             }}
                             className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white z-20 hover:bg-red-600 transition-colors shadow-md"
@@ -2044,12 +2072,36 @@ const NewsForm = ({
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       disabled={uploading}
                     />
-                    <div className={`border-2 border-dashed ${formData.videoUrl ? 'border-green-500 bg-green-500/10' : 'border-slate-700 bg-slate-800/50'} rounded-lg p-6 flex flex-col items-center justify-center hover:border-yellow-500/50 transition-colors`}>
+                    <div className={`border-2 border-dashed ${formData.videoUrl || tempVideoUrl ? 'border-green-500 bg-green-500/10' : 'border-slate-700 bg-slate-800/50'} rounded-lg p-6 flex flex-col items-center justify-center hover:border-yellow-500/50 transition-colors`}>
                       {uploading ? (
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-500"></div>
-                      ) : formData.videoUrl ? (
+                        <div className="flex flex-col items-center">
+                          {tempVideoUrl && <video src={tempVideoUrl} className="h-20 w-full object-cover rounded opacity-50 mb-2" muted />}
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-500"></div>
+                        </div>
+                      ) : (formData.videoUrl || tempVideoUrl) ? (
                         <div className="w-full relative">
-                          <Video className="text-green-500 mb-2 mx-auto" size={24} />
+                          <video 
+                            src={tempVideoUrl || formData.videoUrl} 
+                            className="h-24 w-full object-cover rounded mb-2" 
+                            controls={!!(formData.videoUrl || tempVideoUrl)}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setFormData(prev => ({ ...prev, videoUrl: '' }));
+                              if (tempVideoUrl) {
+                                URL.revokeObjectURL(tempVideoUrl);
+                                setTempVideoUrl(null);
+                              }
+                              toast.info("Video removed");
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white z-20 hover:bg-red-600 transition-colors shadow-md"
+                            title="Remove Video"
+                          >
+                            <X size={14} />
+                          </button>
                           <span className="text-xs text-green-500 block text-center font-bold">Video Uploaded</span>
                         </div>
                       ) : (
@@ -2224,7 +2276,7 @@ const NewsManager = ({ news, setNews, onViewItem, user }: { news: NewsItem[], se
     if (confirm('Are you sure you want to delete this news item?')) {
       try {
         await api.deleteNews(id);
-        const updatedNews = await api.getNews();
+        const updatedNews = await api.getNews(undefined, undefined, 'all');
         setNews(updatedNews.filter(n => n.status === 'published'));
         toast.success('News item deleted successfully');
       } catch (error) {
@@ -2274,7 +2326,7 @@ const NewsManager = ({ news, setNews, onViewItem, user }: { news: NewsItem[], se
         toast.success('News published successfully');
       }
 
-      const updatedNews = await api.getNews();
+      const updatedNews = await api.getNews(undefined, undefined, 'all');
       setNews(updatedNews.filter(n => n.status === 'published'));
       setIsFormOpen(false);
       setEditingItem(null);
@@ -2426,7 +2478,20 @@ const NewsManager = ({ news, setNews, onViewItem, user }: { news: NewsItem[], se
           >
             <div className={`${viewMode === 'list' ? 'w-full md:w-48 h-32' : 'w-full aspect-square'} bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative group`}>
               {item.imageUrl ? (
-                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                <img 
+                  src={item.imageUrl} 
+                  alt={item.title} 
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                  onError={(e) => {
+                    const currentSrc = e.currentTarget.src;
+                    if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
+                      const filename = currentSrc.split('/').pop()?.split('?')[0];
+                      if (filename) {
+                        e.currentTarget.src = `https://api.samanyudutv.in/api/uploads/${filename}?fallback=true`;
+                      }
+                    }
+                  }}
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-500">
                   <ImageIcon size={32} />
@@ -2564,7 +2629,7 @@ const NewsApprovalManager = ({ pendingNews, setPendingNews, setNews }: { pending
       await api.updateNews(item.id, { status: 'published' });
 
       // Refresh lists
-      const allNews = await api.getNews();
+      const allNews = await api.getNews(undefined, undefined, 'all');
       setNews(allNews.filter(n => n.status === 'published'));
       setPendingNews(allNews.filter(n => n.status === 'pending')); // Re-fetch or filter locally? Better re-fetch ensures consistency but might be overkill.
       // Actually setPendingNews is passed from App, let's just refresh everything in App ? 
@@ -2581,14 +2646,10 @@ const NewsApprovalManager = ({ pendingNews, setPendingNews, setNews }: { pending
   const handleReject = async (id: string) => {
     if (confirm('Are you sure you want to reject this submission? It will be removed permanently.')) {
       try {
-        await api.updateNews(id, { status: 'rejected' });
-        // Or delete? user said "removed permanently". Let's simply delete or set status rejected.
-        // Previous logic was filtering out, so it was effectively deleting from view.
-        // Let's mark as rejected so we keep record, or delete if desired. Let's stick to update status for now.
-        // Actually, previous code: setPendingNews(prev => prev.filter(p => p.id !== id)); -> it removed it from state.
-        // Let's just update status to rejected so we don't handle it anymore.
+        // Rejected submissions should be deleted permanently (as requested)
+        await api.deleteNews(id);
 
-        const allNews = await api.getNews();
+        const allNews = await api.getNews(undefined, undefined, 'all');
         setPendingNews(allNews.filter(n => n.status === 'pending'));
 
         setSelectedItem(null);
@@ -2705,7 +2766,20 @@ const NewsApprovalManager = ({ pendingNews, setPendingNews, setNews }: { pending
                 </div>
                 {selectedItem.imageUrl && (
                   <div className="w-full h-64 bg-slate-800 rounded-lg overflow-hidden border border-slate-700">
-                    <img src={selectedItem.imageUrl} alt={selectedItem.title} className="w-full h-full object-cover" />
+                    <img
+                      src={selectedItem.imageUrl}
+                      alt={selectedItem.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const currentSrc = e.currentTarget.src;
+                        if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
+                          const filename = currentSrc.split('/').pop()?.split('?')[0];
+                          if (filename) {
+                            e.currentTarget.src = `https://api.samanyudutv.in/api/uploads/${filename}?fallback=true`;
+                          }
+                        }
+                      }}
+                    />
                   </div>
                 )}
 
@@ -2810,6 +2884,14 @@ const ShortsForm = ({
   const [duration, setDuration] = useState(initialData?.duration || 0); // Simulated duration
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [tempVideoUrl, setTempVideoUrl] = useState<string | null>(initialData?.videoUrl || null);
+
+  // Cleanup object URL
+  useEffect(() => {
+    return () => {
+      if (tempVideoUrl && !initialData?.videoUrl) URL.revokeObjectURL(tempVideoUrl);
+    };
+  }, [tempVideoUrl, initialData?.videoUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2899,7 +2981,11 @@ const ShortsForm = ({
                 disabled={uploading}
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
-                    setVideoFile(e.target.files[0]);
+                    const file = e.target.files[0];
+                    setVideoFile(file);
+                    const objectUrl = URL.createObjectURL(file);
+                    if (tempVideoUrl) URL.revokeObjectURL(tempVideoUrl);
+                    setTempVideoUrl(objectUrl);
                     toast.info("Video selected.");
                   }
                 }}
@@ -3064,9 +3150,25 @@ const ShortsManager = ({ shorts, setShorts, onViewItem, user }: { shorts: ShortI
         {filteredShorts.map(item => (
           viewMode === 'grid' ? (
             <div key={item.id} className="group relative aspect-[9/16] bg-slate-800 rounded-xl overflow-hidden border border-slate-700 shadow-lg">
-              {/* Mock Video Thumbnail */}
-              <div className="absolute inset-0 bg-slate-700 flex items-center justify-center">
-                <Video size={48} className="text-slate-600" />
+              {/* Video Preview */}
+              <div className="absolute inset-0 bg-slate-700">
+                <video
+                  src={item.videoUrl}
+                  className="w-full h-full object-cover"
+                  muted
+                  playsInline
+                  onMouseOver={(e) => e.currentTarget.play()}
+                  onMouseOut={(e) => e.currentTarget.pause()}
+                  onError={(e) => {
+                    const currentSrc = (e.currentTarget as HTMLVideoElement).src;
+                    if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
+                      const filename = currentSrc.split('/').pop()?.split('?')[0];
+                      if (filename) {
+                        (e.currentTarget as HTMLVideoElement).src = `https://api.samanyudutv.in/api/uploads/${filename}?fallback=true`;
+                      }
+                    }
+                  }}
+                />
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-4 flex flex-col justify-end">
                 <h3 className="text-white font-bold line-clamp-2 mb-1">{item.title}</h3>
@@ -3103,8 +3205,22 @@ const ShortsManager = ({ shorts, setShorts, onViewItem, user }: { shorts: ShortI
               animate={{ opacity: 1, y: 0 }}
               className="bg-slate-800 rounded-xl border border-slate-700 p-4 flex gap-6 hover:border-slate-600 transition-colors"
             >
-              <div className="h-32 w-24 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-700">
-                <Video size={32} className="text-slate-600" />
+              <div className="h-32 w-24 bg-slate-900 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-700 overflow-hidden">
+                <video
+                  src={item.videoUrl}
+                  className="w-full h-full object-cover"
+                  muted
+                  playsInline
+                  onError={(e) => {
+                    const currentSrc = (e.currentTarget as HTMLVideoElement).src;
+                    if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
+                      const filename = currentSrc.split('/').pop()?.split('?')[0];
+                      if (filename) {
+                        (e.currentTarget as HTMLVideoElement).src = `https://api.samanyudutv.in/api/uploads/${filename}?fallback=true`;
+                      }
+                    }
+                  }}
+                />
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
@@ -3176,6 +3292,13 @@ const AdvertisementsManager = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ mediaUrl: '', intervalMinutes: 15, displayInterval: 4, clickUrl: '', isActive: true });
   const [file, setFile] = useState<File | null>(null);
+  const [tempMediaUrl, setTempMediaUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (tempMediaUrl) URL.revokeObjectURL(tempMediaUrl);
+    };
+  }, [tempMediaUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -3191,6 +3314,11 @@ const AdvertisementsManager = ({
         finalMediaUrl = await api.uploadFile(file);
       }
 
+      if (tempMediaUrl) {
+        URL.revokeObjectURL(tempMediaUrl);
+        setTempMediaUrl(null);
+      }
+
       await onAdd({
         mediaUrl: finalMediaUrl,
         intervalMinutes: formData.intervalMinutes,
@@ -3201,6 +3329,7 @@ const AdvertisementsManager = ({
       setShowForm(false);
       setFormData({ mediaUrl: '', intervalMinutes: 15, displayInterval: 4, clickUrl: '', isActive: true });
       setFile(null);
+      setTempMediaUrl(null);
       toast.success('Advertisement added successfully');
     } catch (error) {
       toast.error('Failed to add ad');
@@ -3229,9 +3358,42 @@ const AdvertisementsManager = ({
             <input
               type="file"
               accept="image/*,video/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const f = e.target.files?.[0] || null;
+                setFile(f);
+                if (f) {
+                  const objectUrl = URL.createObjectURL(f);
+                  if (tempMediaUrl) URL.revokeObjectURL(tempMediaUrl);
+                  setTempMediaUrl(objectUrl);
+                } else if (tempMediaUrl) {
+                  URL.revokeObjectURL(tempMediaUrl);
+                  setTempMediaUrl(null);
+                }
+              }}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white outline-none focus:border-yellow-500 transition-colors"
             />
+            {tempMediaUrl && (
+              <div className="mt-2 relative group-preview">
+                {file?.type.startsWith('video') ? (
+                  <video src={tempMediaUrl} className="h-32 w-full object-cover rounded-lg" controls />
+                ) : (
+                  <img src={tempMediaUrl} className="h-32 w-full object-cover rounded-lg" alt="Preview" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFile(null);
+                    if (tempMediaUrl) {
+                      URL.revokeObjectURL(tempMediaUrl);
+                      setTempMediaUrl(null);
+                    }
+                  }}
+                  className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -3290,9 +3452,35 @@ const AdvertisementsManager = ({
           <div key={ad.id} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden relative group">
             <div className="h-32 bg-black relative">
               {ad.mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
-                <video src={ad.mediaUrl} className="w-full h-full object-cover" controls />
+                <video 
+                  src={ad.mediaUrl} 
+                  className="w-full h-full object-cover" 
+                  controls 
+                  onError={(e) => {
+                    const currentSrc = (e.currentTarget as HTMLVideoElement).src;
+                    if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
+                      const filename = currentSrc.split('/').pop()?.split('?')[0];
+                      if (filename) {
+                        (e.currentTarget as HTMLVideoElement).src = `https://api.samanyudutv.in/api/uploads/${filename}?fallback=true`;
+                      }
+                    }
+                  }}
+                />
               ) : (
-                <img src={ad.mediaUrl} className="w-full h-full object-cover" alt="Ad" />
+                <img 
+                  src={ad.mediaUrl} 
+                  className="w-full h-full object-cover" 
+                  alt="Ad" 
+                  onError={(e) => {
+                    const currentSrc = e.currentTarget.src;
+                    if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
+                      const filename = currentSrc.split('/').pop()?.split('?')[0];
+                      if (filename) {
+                        e.currentTarget.src = `https://api.samanyudutv.in/api/uploads/${filename}?fallback=true`;
+                      }
+                    }
+                  }}
+                />
               )}
             </div>
             <div className="p-3 space-y-2">
@@ -3401,7 +3589,7 @@ export default function App() {
     const fetchData = async () => {
       try {
         const [newsData, shortsData, adsData] = await Promise.all([
-          api.getNews(adminUser.district, adminUser.role),
+          api.getNews(adminUser.district, adminUser.role, 'all'),
           api.getShorts(adminUser.district, adminUser.role),
           api.getAdvertisements()
         ]);

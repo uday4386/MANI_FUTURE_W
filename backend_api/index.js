@@ -91,6 +91,7 @@ const allowedOrigins = [
     'http://localhost:5000',
     'http://localhost:3001',
     'http://localhost:3000',
+    'http://localhost:8085',
     'http://127.0.0.1:8099',
     'http://127.0.0.1:8080',
     'http://192.168.29.208:5000',
@@ -1013,7 +1014,7 @@ app.delete('/api/admin/news/wipe', async (req, res) => {
 
 app.get('/api/news', async (req, res) => {
     try {
-        const { district, role } = req.query;
+        const { district, role, status } = req.query;
         let query = `
             SELECT n.*, 
                    (SELECT json_build_object(
@@ -1032,10 +1033,22 @@ app.get('/api/news', async (req, res) => {
             FROM news n
         `;
         let params = [];
+        let whereClauses = [];
 
         if (role === 'sub_admin' && district) {
-            query += ' WHERE n.area = $1';
+            whereClauses.push(`n.area = $${params.length + 1}`);
             params.push(district);
+        }
+
+        if (status && status !== 'all') {
+            whereClauses.push(`n.status = $${params.length + 1}`);
+            params.push(status);
+        } else if (!status) {
+            whereClauses.push(`n.status = 'published'`);
+        }
+
+        if (whereClauses.length > 0) {
+            query += ' WHERE ' + whereClauses.join(' AND ');
         }
 
         query += ' ORDER BY n.timestamp DESC';
@@ -1049,9 +1062,9 @@ app.get('/api/news', async (req, res) => {
 
 app.post('/api/news', async (req, res) => {
     try {
-        const { 
-            title, description, category, img_url, image_url, video_url, location, 
-            is_breaking, live_link, status, author, area, type, marriage_details 
+        const {
+            title, description, category, img_url, image_url, video_url, location,
+            is_breaking, live_link, status, author, area, type, marriage_details
         } = req.body;
 
         // Normalize fields
@@ -1066,7 +1079,7 @@ app.post('/api/news', async (req, res) => {
       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *;
         `;
-        const values = [title, description, finalArea, finalType, finalImageUrl, video_url, is_breaking || false, live_link, status || 'published', author || 'Admin'];
+        const values = [title, description, finalArea, finalType, finalImageUrl, video_url, is_breaking || false, live_link, status || 'pending', author || 'User'];
         const { rows } = await db.query(query, values);
         const news = rows[0];
 
@@ -1083,35 +1096,35 @@ app.post('/api/news', async (req, res) => {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
             `;
             const mValues = [
-                news.id, 
-                m.full_name ?? null, 
-                m.gender ?? null, 
-                m.date_of_birth ?? null, 
-                m.age ? parseInt(m.age) : null, 
+                news.id,
+                m.full_name ?? null,
+                m.gender ?? null,
+                m.date_of_birth ?? null,
+                m.age ? parseInt(m.age) : null,
                 m.profile_photo ?? null,
-                m.location ?? null, 
-                m.native_place ?? null, 
-                m.religion ?? null, 
-                m.caste ?? null, 
-                m.sub_caste ?? null, 
+                m.location ?? null,
+                m.native_place ?? null,
+                m.religion ?? null,
+                m.caste ?? null,
+                m.sub_caste ?? null,
                 m.mother_tongue ?? null,
-                m.highest_education ?? null, 
-                m.college_name ?? null, 
-                m.occupation ?? null, 
-                m.company_name ?? null, 
+                m.highest_education ?? null,
+                m.college_name ?? null,
+                m.occupation ?? null,
+                m.company_name ?? null,
                 m.annual_income ?? null,
-                m.father_name ?? null, 
-                m.father_occupation ?? null, 
-                m.mother_name ?? null, 
-                m.mother_occupation ?? null, 
+                m.father_name ?? null,
+                m.father_occupation ?? null,
+                m.mother_name ?? null,
+                m.mother_occupation ?? null,
                 m.siblings ?? null,
-                m.phone_number ?? null, 
-                m.email ?? null, 
-                m.whatsapp_number ?? null, 
+                m.phone_number ?? null,
+                m.email ?? null,
+                m.whatsapp_number ?? null,
                 m.is_contact_visible === true || m.is_contact_visible === 'true'
             ];
             await db.query(mQuery, mValues);
-            
+
             // Re-fetch to include marriage data in response
             const fullNewsResult = await db.query(`
                 SELECT n.*, 

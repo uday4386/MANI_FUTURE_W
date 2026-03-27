@@ -51,11 +51,16 @@ export const normalizeMediaUrl = (url: string | undefined): string => {
 
 export const api = {
     // --- NEWS ---
-    async getNews(district?: string, role?: string) {
-        let url = `${API_URL}/news`;
-        if (role && district) {
-            url += `?role=${role}&district=${encodeURIComponent(district)}`;
-        }
+    async getNews(district?: string, role?: string, status?: string) {
+        let url = `${API_URL}/news?`;
+        const params = new URLSearchParams();
+        if (role) params.append('role', role);
+        if (district) params.append('district', district);
+        if (status) params.append('status', status);
+        url += params.toString();
+        // Remove trailing '?' if no params
+        if (url.endsWith('?')) url = url.slice(0, -1);
+        
         const res = await fetch(url);
         if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch news'));
         const data = await res.json();

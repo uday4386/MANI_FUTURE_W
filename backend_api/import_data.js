@@ -16,12 +16,10 @@ const orderedTables = [
 
 async function importAllCsvFiles() {
     const client = new Client({
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5432,
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD,
-        database: 'samanyudu',
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
     });
+
 
     try {
         await client.connect();
