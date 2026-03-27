@@ -14,8 +14,8 @@ const resolveApiUrl = (): string => {
     const envBase = import.meta.env.VITE_API_URL;
     if (envBase && typeof envBase === 'string') return normalizeApiBase(envBase);
 
-    // Safe production default: same-origin via nginx reverse proxy
-    return '/api';
+    // Production cloud API on DigitalOcean
+    return 'https://api.samanyudutv.in/api';
 };
 
 const API_URL = resolveApiUrl();
