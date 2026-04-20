@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS advertisements (
     display_interval INT DEFAULT 4,
     click_url VARCHAR,
     is_active BOOLEAN DEFAULT false,
+    status VARCHAR DEFAULT 'published',
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 -- Table: news
@@ -42,7 +43,7 @@ CREATE TABLE IF NOT EXISTS news (
     video_url VARCHAR,
     is_breaking BOOLEAN DEFAULT false,
     live_link VARCHAR,
-    status VARCHAR DEFAULT 'published',
+    status VARCHAR DEFAULT 'pending',
     author VARCHAR,
     likes INT DEFAULT 0,
     comments_count INT DEFAULT 0,
@@ -108,6 +109,9 @@ CREATE TABLE IF NOT EXISTS shorts (
     title VARCHAR NOT NULL,
     video_url VARCHAR NOT NULL,
     duration FLOAT,
+    area VARCHAR DEFAULT 'General',
+    author VARCHAR DEFAULT 'Admin',
+    status VARCHAR DEFAULT 'pending',
     likes INT DEFAULT 0,
     comments_count INT DEFAULT 0,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

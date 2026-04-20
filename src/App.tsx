@@ -97,7 +97,9 @@ const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen, user, onL
           <div className="p-6 border-b border-slate-800 flex justify-center">
             <div className="flex flex-col items-center">
               <img src={logoImage} alt="SAMANYUDU TV" className="h-16 object-contain" />
-              <p className="text-[10px] text-yellow-500 font-bold mt-1 tracking-widest uppercase opacity-80">(CLOUD PRODUCTION)</p>
+              <p className="text-[10px] text-yellow-500 font-bold mt-1 tracking-widest uppercase opacity-80">
+                ({window.location.hostname === 'localhost' ? 'LOCAL DEVELOPMENT' : 'CLOUD PRODUCTION'})
+              </p>
             </div>
           </div>
 
@@ -127,8 +129,11 @@ const Sidebar = ({ activeTab, setActiveTab, mobileOpen, setMobileOpen, user, onL
               {user?.district && <p className="text-[10px] text-yellow-500/80 mt-1">📍 {user.district}</p>}
             </div>
             <button
-              onClick={onLogout}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+              onClick={() => {
+                console.log('Logging out...');
+                onLogout();
+              }}
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer relative z-[150]"
             >
               <LogOut size={20} />
               <span>Log Out</span>
@@ -574,19 +579,6 @@ const LoginView = ({ onLogin }: { onLogin: (user: any) => void }) => {
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => onLogin({
-                id: 'dev-super-admin',
-                email: 'superadmin1@samanyudu.tv',
-                name: 'Super Admin (Dev)',
-                role: 'super_admin',
-                district: null
-              })}
-              className="w-full py-2 text-slate-500 hover:text-yellow-500 text-sm font-medium transition-colors"
-            >
-              Skip to Super Admin Portal
-            </button>
           </div>
         </form>
 
@@ -1347,7 +1339,12 @@ const NewsForm = ({
     marriageDetails: initialData?.marriageDetails || {} as MarriageDetails
   });
 
-  const newsTypes: NewsType[] = ['Political', 'Accident', 'Education', 'Crime', 'Weather', 'Sports', 'Business', 'Social', 'Marriage', 'Live', 'Others'];
+  const newsTypes: NewsType[] = [
+    'Political', 'AndhraPradesh', 'Telangana', 'National', 'International', 
+    'Crime', 'Education', 'Jobs', 'Classifieds', 'Live', 
+    'Business', 'Sports', 'Agriculture', 'Marriage', 'RealEstate', 
+    'Bhakthi', 'Health', 'Social', 'Accident', 'Weather', 'Others'
+  ];
   const [uploading, setUploading] = useState(false);
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
@@ -1508,7 +1505,7 @@ const NewsForm = ({
     console.log(`Selected file for ${type}:`, file.name);
 
     setUploading(true);
-    
+
     // Create local preview immediately
     const objectUrl = URL.createObjectURL(file);
     if (type === 'image') {
@@ -2020,7 +2017,7 @@ const NewsForm = ({
                             onError={(e) => {
                               const currentSrc = e.currentTarget.src;
                               console.error("Image failed to load:", currentSrc);
-                              
+
                               // If it's an R2 URL and we haven't tried the fallback yet
                               if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
                                 const filename = currentSrc.split('/').pop()?.split('?')[0];
@@ -2030,7 +2027,7 @@ const NewsForm = ({
                                   return;
                                 }
                               }
-                              
+
                               e.currentTarget.src = 'https://placehold.co/600x400?text=Load+Error';
                               toast.error("Image display failed. Check Cloudflare R2 DNS configuration.");
                             }}
@@ -2080,9 +2077,9 @@ const NewsForm = ({
                         </div>
                       ) : (formData.videoUrl || tempVideoUrl) ? (
                         <div className="w-full relative">
-                          <video 
-                            src={tempVideoUrl || formData.videoUrl} 
-                            className="h-24 w-full object-cover rounded mb-2" 
+                          <video
+                            src={tempVideoUrl || formData.videoUrl}
+                            className="h-24 w-full object-cover rounded mb-2"
                             controls={!!(formData.videoUrl || tempVideoUrl)}
                           />
                           <button
@@ -2443,7 +2440,12 @@ const NewsManager = ({ news, setNews, onViewItem, user }: { news: NewsItem[], se
             className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-yellow-500"
           >
             <option value="All">All Categories</option>
-            {['Political', 'Accident', 'Education', 'Crime', 'Weather', 'Sports', 'Business', 'Social', 'Marriage', 'Others'].map(t => (
+            {[
+              'Political', 'AndhraPradesh', 'Telangana', 'National', 'International',
+              'Crime', 'Education', 'Jobs', 'Classifieds', 'Live',
+              'Business', 'Sports', 'Agriculture', 'Marriage', 'RealEstate',
+              'Bhakthi', 'Health', 'Social', 'Accident', 'Weather', 'Others'
+            ].map(t => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -2478,10 +2480,10 @@ const NewsManager = ({ news, setNews, onViewItem, user }: { news: NewsItem[], se
           >
             <div className={`${viewMode === 'list' ? 'w-full md:w-48 h-32' : 'w-full aspect-square'} bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative group`}>
               {item.imageUrl ? (
-                <img 
-                  src={item.imageUrl} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                <img
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   onError={(e) => {
                     const currentSrc = e.currentTarget.src;
                     if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
@@ -3452,10 +3454,10 @@ const AdvertisementsManager = ({
           <div key={ad.id} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden relative group">
             <div className="h-32 bg-black relative">
               {ad.mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
-                <video 
-                  src={ad.mediaUrl} 
-                  className="w-full h-full object-cover" 
-                  controls 
+                <video
+                  src={ad.mediaUrl}
+                  className="w-full h-full object-cover"
+                  controls
                   onError={(e) => {
                     const currentSrc = (e.currentTarget as HTMLVideoElement).src;
                     if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {
@@ -3467,10 +3469,10 @@ const AdvertisementsManager = ({
                   }}
                 />
               ) : (
-                <img 
-                  src={ad.mediaUrl} 
-                  className="w-full h-full object-cover" 
-                  alt="Ad" 
+                <img
+                  src={ad.mediaUrl}
+                  className="w-full h-full object-cover"
+                  alt="Ad"
                   onError={(e) => {
                     const currentSrc = e.currentTarget.src;
                     if (currentSrc.includes('r2.dev') && !currentSrc.includes('fallback=true')) {

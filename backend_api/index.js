@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
@@ -15,6 +16,39 @@ const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const puppeteer = require('puppeteer');
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin for Push Notifications
+try {
+    const serviceAccount = require('./serviceAccountKey.json');
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('Firebase Admin initialized for notifications.');
+} catch (error) {
+    console.error('Error initializing Firebase Admin:', error.message);
+}
+
+// Push Notification Helper
+async function sendPushNotification(title, body, newsId, type = 'news') {
+    try {
+        const message = {
+            notification: {
+                title: title,
+                body: body
+            },
+            data: {
+                id: newsId.toString(),
+                type: type
+            },
+            topic: 'news'
+        };
+        const response = await admin.messaging().send(message);
+        console.log(`Notification sent for ${type} ${newsId}:`, response);
+    } catch (error) {
+        console.error('Error sending push notification:', error);
+    }
+}
 
 const app = express();
 
@@ -29,6 +63,18 @@ const app = express();
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='name') THEN
                     ALTER TABLE users ADD COLUMN name VARCHAR;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='advertisements' AND column_name='status') THEN
+                    ALTER TABLE advertisements ADD COLUMN status VARCHAR DEFAULT 'published';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='advertisements' AND column_name='is_active') THEN
+                    ALTER TABLE advertisements ADD COLUMN is_active BOOLEAN DEFAULT false;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='news' AND column_name='status') THEN
+                    ALTER TABLE news ADD COLUMN status VARCHAR DEFAULT 'published';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='shorts' AND column_name='status') THEN
+                    ALTER TABLE shorts ADD COLUMN status VARCHAR DEFAULT 'published';
                 END IF;
                 CREATE TABLE IF NOT EXISTS app_settings (
                     key VARCHAR PRIMARY KEY,
@@ -100,6 +146,8 @@ const allowedOrigins = [
     'https://www.samanyudutv.in',
     'https://admin.samanyudutv.in',
     'https://api.samanyudutv.in',
+    'http://localhost:3002',
+    'http://127.0.0.1:3002',
     process.env.ADMIN_URL,
     process.env.MOBILE_WEB_URL
 ].filter(Boolean);
@@ -119,6 +167,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Health Check
+app.get('/api/health', async (req, res) => {
+    try {
+        await db.query('SELECT 1');
+        res.status(200).json({ status: 'healthy', database: 'connected', version: '1.0.1' });
+    } catch (err) {
+        res.status(500).json({ status: 'unhealthy', database: 'error', error: err.message });
+    }
+});
 app.use((err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
         console.error('Invalid JSON payload:', err.message);
@@ -152,10 +210,35 @@ function getS3Client() {
     });
 }
 
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
+// Optimized for production: Use disk storage for large video uploads
+// This prevents high RAM usage and server crashes during video processing
+const diskStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const tmpDir = path.join(uploadsDir, 'tmp');
+        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+        cb(null, tmpDir);
+    },
+    filename: (req, file, cb) => {
+        const fileExt = path.extname(file.originalname);
+        cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExt}`);
+    }
 });
+
+const upload = multer({
+    storage: diskStorage,
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB limit for high-quality production videos
+});
+
+// Middleware to catch Multer errors (like file too large)
+const handleUploadError = (err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'à°«à±ˆà°²à± à°ªà°°à°¿à°®à°¾à°£à°‚ 500MB à°•à°‚à°Ÿà±‡ à°Žà°•à±à°•à±à°µ à°‰à°‚à°¦à°¿. à°¦à°¯à°šà±‡à°¸à°¿ à°šà°¿à°¨à±à°¨ à°«à±ˆà°²à±â€Œà°¨à± à°…à°ªà±â€Œà°²à±‹à°¡à± à°šà±‡à°¯à°‚à°¡à°¿. (File too large, 500MB limit)' });
+        }
+        return res.status(400).json({ error: `à°…à°ªà±â€Œà°²à±‹à°¡à± à°²à±‹à°ªà°‚: ${err.message}` });
+    }
+    next(err);
+};
 
 // ==========================================
 // HEALTH CHECK & ONE-TIME DB SETUP
@@ -220,94 +303,63 @@ app.post('/api/auth/send-otp', async (req, res) => {
         phone = phone.replace(/\D/g, '');
         if (phone.length === 10) phone = '91' + phone;
 
-        // Check for existing user before sending OTP (Only if type is explicitly 'signup')
-        const { rows: userCheck } = await db.query('SELECT 1 FROM users WHERE phone = $1', [phone.substring(phone.length - 10)]);
+        const cleanPhone10 = phone.substring(phone.length - 10);
+        const phoneWith91 = '91' + cleanPhone10;
+        const { rows: userCheck } = await db.query('SELECT 1 FROM users WHERE phone = $1', [cleanPhone10]);
         const { type } = req.body;
 
         if (type === 'signup' && userCheck.length > 0) {
-            return res.status(400).json({ error: 'మొబైల్ నంబర్ ఇప్పటికే నమోదు చేయబడింది. దయచేసి లాగిన్ చేయండి.' });
+            return res.status(400).json({ error: 'This mobile number is already registered. Please login.' });
         }
         if ((type === 'reset' || type === 'login') && userCheck.length === 0) {
-            return res.status(404).json({ error: 'ఈ మొబైల్ నంబర్ ఇంకా నమోదు కాలేదు. దయచేసి ముందుగా నమోదు చేసుకోండి.' }); // Account not found
-        }
-        // If no type specified (legacy app), we allow it to proceed to support both signup/reset.
-
-        // 1. Try Message Central (Primary)
-        if (MESSAGE_CENTRAL_CUSTOMER_ID && MESSAGE_CENTRAL_API_KEY) {
-            try {
-                // If key is a JWT, use it directly as the token
-                let token = MESSAGE_CENTRAL_API_KEY.startsWith('eyJ')
-                    ? MESSAGE_CENTRAL_API_KEY
-                    : await getMessageCentralToken();
-
-                if (token) {
-                    const sendUrl = 'https://cpaas.messagecentral.com/verification/v3/send';
-                    const payload = {
-                        customerId: MESSAGE_CENTRAL_CUSTOMER_ID,
-                        countryCode: '91',
-                        mobileNumber: phone.substring(phone.length - 10),
-                        flowId: 'default', // Using your default flow
-                        flowType: 'SMS',   // Try SMS first
-                        type: 'OTP',       // Verication type
-                        isFallbackEnable: true // ENABLE VOICE FALLBACK
-                    };
-
-                    console.log(`[OTP] Requesting SMS from MC for ${phone}...`);
-                    const response = await axios.post(sendUrl, payload, {
-                        headers: { 'authToken': token }
-                    });
-                    console.log(`[OTP] MC Response:`, JSON.stringify(response.data));
-
-                    if (response.data.responseCode === 200) {
-                        mobileOtpStore.set(phone.substring(phone.length - 10), {
-                            use_mc: true,
-                            expires: Date.now() + 10 * 60 * 1000
-                        });
-                        return res.json({ success: true, message: 'OTP sent successfully via Message Central' });
-                    }
-                }
-            } catch (err) {
-                console.error('Message Central failed:', err.response?.data || err.message);
-            }
+            return res.status(404).json({ error: 'This mobile number is not registered yet. Please sign up first.' });
         }
 
-        // 2. Fallbacks (2Factor & Fast2SMS)
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        mobileOtpStore.set(phone.substring(phone.length - 10), { otp, expires: Date.now() + 10 * 60 * 1000 });
+        // Generate 4-digit OTP as per Approved Template 'OTP_TEMPLATE'
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-        if (TWO_FACTOR_API_KEY) {
+        // 1. Primary: 2Factor.in with Transactional API (POST)
+        if (process.env.TWO_FACTOR_API_KEY) {
             try {
-                const url = `https://2factor.in/API/V1/${TWO_FACTOR_API_KEY}/SMS/${phone}/${otp}/OTP1`;
-                const response = await axios.get(url);
+                console.log(`[OTP] Sending Transactional SMS to ${phoneWith91} using VIAENT...`);
+                const response = await axios.post(`https://2factor.in/API/V1/${process.env.TWO_FACTOR_API_KEY}/ADDON_SERVICES/SEND/TSMS`, {
+                    From: 'VIAENT',
+                    To: phoneWith91,
+                    TemplateName: 'OTP_TEMPLATE',
+                    VAR1: otp
+                });
+
                 if (response.data.Status === 'Success') {
-                    console.log(`[OTP] Sent via 2Factor (SMS) to ${phone}`);
-                    return res.json({ success: true, message: 'OTP sent successfully via 2Factor' });
+                    mobileOtpStore.set(cleanPhone10, { otp, expires: Date.now() + 10 * 60 * 1000 });
+                    return res.json({ success: true, message: 'OTP sent successfully via Transactional SMS' });
+                } else {
+                    console.error('2Factor API returned error:', response.data);
                 }
             } catch (err) {
-                console.error('2Factor fallback failed:', err.message);
+                console.error('2Factor Transactional API failed:', err.response?.data || err.message);
             }
         }
 
-        if (FAST2SMS_API_KEY) {
+        // 2. Fallback: Fast2SMS
+        if (process.env.FAST2SMS_API_KEY) {
             try {
-                const phone10 = phone.substring(phone.length - 10);
-                const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&numbers=${phone10}`;
+                const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&numbers=${cleanPhone10}`;
                 const response = await axios.get(url);
                 if (response.data.return) {
-                    console.log(`[OTP] Sent via Fast2SMS to ${phone10}`);
-                    return res.json({ success: true, message: 'OTP sent successfully via Fast2SMS' });
+                    mobileOtpStore.set(cleanPhone10, { otp, expires: Date.now() + 10 * 60 * 1000 });
+                    return res.json({ success: true, message: 'OTP sent successfully via backup SMS' });
                 }
             } catch (err) {
                 console.error('Fast2SMS fallback failed:', err.message);
             }
         }
-        return res.status(400).json({ error: 'Failed to send OTP. Service issue.' });
+
+        return res.status(400).json({ error: 'Failed to send OTP. Please try again later.' });
     } catch (err) {
         console.error('Error sending OTP:', err);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
 app.post('/api/auth/verify-otp', async (req, res) => {
     try {
         let { phone, otp } = req.body;
@@ -522,7 +574,7 @@ app.post('/api/auth/reset-password-mobile', async (req, res) => {
         }
 
         console.log(`[Reset] Updating password for ${phone}. New length: ${newPassword.length}`);
-        const { rowCount } = await db.query('UPDATE users SET password = $1 WHERE phone = $2', [newPassword.trim(), phone]);
+        const { rowCount } = await db.query('UPDATE users SET password = $1 WHERE phone = $2', [await bcrypt.hash(newPassword.trim(), 10), phone]);
 
         if (rowCount === 0) {
             console.warn(`[Reset] Found no user with phone ${phone}`);
@@ -549,18 +601,10 @@ app.post('/api/auth/login-mobile', async (req, res) => {
         const passTrimmed = String(password).trim();
 
         console.log(`[Login] Attempt for ${phone}`);
-        const { rows } = await db.query('SELECT * FROM users WHERE phone = $1 AND password = $2', [phone, passTrimmed]);
+        const { rows } = await db.query('SELECT * FROM users WHERE phone = $1', [phone]);
 
-        if (rows.length === 0) {
-            // Optional: try to find user by phone only to give better error
-            const { rows: checkUser } = await db.query('SELECT password FROM users WHERE phone = $1', [phone]);
-            if (checkUser.length > 0) {
-                console.warn(`[Login] Wrong password for ${phone}`);
-                return res.status(401).json({ error: 'Incorrect password' });
-            } else {
-                console.warn(`[Login] Phone not found ${phone}`);
-                return res.status(401).json({ error: 'No account found with this phone number' });
-            }
+        if (rows.length === 0 || !(await bcrypt.compare(passTrimmed, rows[0].password))) {
+            return res.status(401).json({ error: 'Invalid phone or password' });
         }
 
         const user = rows[0];
@@ -626,8 +670,9 @@ app.post('/api/auth/login-email', async (req, res) => {
         const { email, password } = req.body;
         const passTrimmed = String(password || '').trim();
 
-        const { rows } = await db.query('SELECT * FROM users WHERE email = $1 AND password = $2', [email, passTrimmed]);
-        if (rows.length === 0) {
+        const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (rows.length === 0 || !(await bcrypt.compare(passTrimmed, rows[0].password))) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
@@ -684,9 +729,9 @@ app.put('/api/user/:id/profile', async (req, res) => {
 app.post('/api/admin/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const { rows } = await db.query('SELECT id, email, name, role, state, district FROM admin_users WHERE email = $1 AND password = $2', [email, password]);
+        const { rows } = await db.query('SELECT id, email, name, role, state, district, password FROM admin_users WHERE email = $1', [email]);
 
-        if (rows.length === 0) {
+        if (rows.length === 0 || password !== rows[0].password) {
             return res.status(401).json({ error: 'Invalid admin credentials' });
         }
 
@@ -1040,16 +1085,26 @@ app.get('/api/news', async (req, res) => {
             params.push(district);
         }
 
-        if (status && status !== 'all') {
+        // Status Filtering: Default to 'published' for public requests
+        const requestedStatus = status?.toString().toLowerCase();
+
+        if (requestedStatus === 'all') {
+            // No status filter applied - returns everything
+            console.log('[DEBUG] Fetching ALL news (pending + published)');
+        } else if (requestedStatus && requestedStatus !== 'published') {
+            // Filter by specific status (pending, rejected, etc.)
             whereClauses.push(`n.status = $${params.length + 1}`);
-            params.push(status);
-        } else if (!status) {
+            params.push(requestedStatus);
+        } else {
+            // Default: Only show published news
             whereClauses.push(`n.status = 'published'`);
         }
 
         if (whereClauses.length > 0) {
             query += ' WHERE ' + whereClauses.join(' AND ');
         }
+
+        console.log('[DEBUG] News Query Executing:', query, 'with params:', params);
 
         query += ' ORDER BY n.timestamp DESC';
         const { rows } = await db.query(query, params);
@@ -1083,8 +1138,17 @@ app.post('/api/news', async (req, res) => {
         const { rows } = await db.query(query, values);
         const news = rows[0];
 
+        // Trigger Notification if Published
+        if (news.status === 'published') {
+            sendPushNotification(
+                news.is_breaking ? '🚨 BREAKING NEWS' : 'New Update',
+                news.title,
+                news.id
+            );
+        }
+
         // Handle Matrimonial Profile if category is Marriage
-        if ((finalType === 'Marriage' || finalType === 'పెళ్లి పందిరి') && marriage_details) {
+        if ((finalType === 'Marriage' || finalType === 'à°ªà±†à°³à±à°²à°¿ à°ªà°‚à°¦à°¿à°°à°¿') && marriage_details) {
             const m = marriage_details;
             const mQuery = `
                 INSERT INTO marriage_profiles (
@@ -1168,7 +1232,17 @@ app.put('/api/news/:id', async (req, res) => {
             const setClause = keys.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
             const values = Object.values(body);
             values.push(id);
-            await db.query(`UPDATE news SET ${setClause} WHERE id = $${values.length}`, values);
+            const { rows: updatedRows } = await db.query(`UPDATE news SET ${setClause} WHERE id = $${values.length} RETURNING *`, values);
+
+            // Trigger Notification if Status changed to Published
+            if (updatedRows.length > 0 && body.status === 'published') {
+                const updatedNews = updatedRows[0];
+                sendPushNotification(
+                    updatedNews.is_breaking ? '🚨 BREAKING NEWS' : 'New Update',
+                    updatedNews.title,
+                    updatedNews.id
+                );
+            }
         }
 
         if (marriage_details) {
@@ -1273,13 +1347,31 @@ app.delete('/api/news/:id', async (req, res) => {
 // ==========================================
 app.get('/api/shorts', async (req, res) => {
     try {
-        const { district, role } = req.query;
+        const { district, role, status } = req.query;
         let query = 'SELECT * FROM shorts';
         let params = [];
+        let conditions = [];
 
-        if (role === 'sub_admin' && district) {
-            query += ' WHERE area = $1';
+        // Role-based visibility
+        if (role === 'super_admin') {
+            if (status && status !== 'all') {
+                conditions.push(`status = $${params.length + 1}`);
+                params.push(status);
+            }
+        } else {
+            // Mobile app and Reporters see published by default
+            conditions.push(`status = $${params.length + 1}`);
+            params.push('published');
+        }
+
+        // District filtering
+        if (district) {
+            conditions.push(`area = $${params.length + 1}`);
             params.push(district);
+        }
+
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
         }
 
         query += ' ORDER BY timestamp DESC';
@@ -1293,15 +1385,21 @@ app.get('/api/shorts', async (req, res) => {
 
 app.post('/api/shorts', async (req, res) => {
     try {
-        const { title, video_url, videoUrl, duration, area, author } = req.body;
+        const { title, video_url, videoUrl, duration, area, author, status } = req.body;
         const finalVideoUrl = video_url || videoUrl;
         const query = `
-      INSERT INTO shorts(title, video_url, duration, area, author)
-        VALUES($1, $2, $3, $4, $5)
+      INSERT INTO shorts(title, video_url, duration, area, author, status)
+        VALUES($1, $2, $3, $4, $5, $6)
         RETURNING *;
         `;
-        const { rows } = await db.query(query, [title, finalVideoUrl, duration, area || 'General', author || 'Admin']);
-        res.status(201).json(rows[0]);
+        const { rows } = await db.query(query, [title, finalVideoUrl, duration, area || 'General', author || 'Admin', status || 'pending']);
+        const short = rows[0];
+        res.status(201).json(short);
+
+        // Trigger Notification if Published
+        if (short.status === 'published') {
+            sendPushNotification('ðŸŽ¥ New Video Highlight', short.title, short.id, 'short');
+        }
     } catch (error) {
         console.error('Error inserting short:', error);
         res.status(500).json({ error: 'Failed to create short' });
@@ -1322,7 +1420,13 @@ app.put('/api/shorts/:id', async (req, res) => {
         const query = `UPDATE shorts SET ${setClause} WHERE id = $${values.length} RETURNING *; `;
         const { rows } = await db.query(query, values);
         if (rows.length === 0) return res.status(404).json({ error: 'Short not found' });
-        res.json(rows[0]);
+        const updatedShort = rows[0];
+        res.json(updatedShort);
+
+        // Trigger Notification if Status changed to Published
+        if (updates.status === 'published') {
+            sendPushNotification('ðŸŽ¥ New Video Highlight', updatedShort.title, updatedShort.id, 'short');
+        }
     } catch (error) {
         console.error('Error updating short:', error);
         res.status(500).json({ error: 'Failed to update short' });
@@ -1345,7 +1449,19 @@ app.delete('/api/shorts/:id', async (req, res) => {
 // ==========================================
 app.get('/api/advertisements', async (req, res) => {
     try {
-        const { rows } = await db.query('SELECT * FROM advertisements ORDER BY timestamp DESC');
+        const { status } = req.query;
+        let query = 'SELECT * FROM advertisements';
+        let params = [];
+
+        // Default to published for mobile apps
+        const finalStatus = status || 'published';
+        if (finalStatus !== 'all') {
+            query += ' WHERE status = $1';
+            params.push(finalStatus);
+        }
+
+        query += ' ORDER BY timestamp DESC';
+        const { rows } = await db.query(query, params);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching ads:', error);
@@ -1355,13 +1471,13 @@ app.get('/api/advertisements', async (req, res) => {
 
 app.post('/api/advertisements', async (req, res) => {
     try {
-        const { media_url, interval_minutes, display_interval, click_url, is_active } = req.body;
+        const { media_url, interval_minutes, display_interval, click_url, is_active, status } = req.body;
         const query = `
-      INSERT INTO advertisements(media_url, interval_minutes, display_interval, click_url, is_active)
-        VALUES($1, $2, $3, $4, $5)
+      INSERT INTO advertisements(media_url, interval_minutes, display_interval, click_url, is_active, status)
+        VALUES($1, $2, $3, $4, $5, $6)
         RETURNING *;
         `;
-        const { rows } = await db.query(query, [media_url, interval_minutes, display_interval || 4, click_url, is_active]);
+        const { rows } = await db.query(query, [media_url, interval_minutes, display_interval || 4, click_url, is_active, status || 'published']);
         res.status(201).json(rows[0]);
     } catch (error) {
         console.error('Error inserting ad:', error);
@@ -1576,73 +1692,55 @@ app.get('/api/user/:id/likes', async (req, res) => {
     }
 });
 
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', upload.single('file'), handleUploadError, async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const fileExt = path.extname(req.file.originalname);
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${fileExt}`;
+    const fileName = req.file.filename;
 
     try {
-        // 1. Always save locally first for reliability
-        const localPath = path.join(__dirname, 'uploads', fileName);
-        fs.writeFileSync(localPath, req.file.buffer);
-        console.log(`[Upload] Saved locally: ${fileName}`);
+        // 1. Move from tmp to final uploads folder for serving
+        const finalPath = path.join(uploadsDir, fileName);
+        fs.renameSync(req.file.path, finalPath);
+        console.log(`[Upload] Finalized locally: ${fileName}`);
 
-        // 2. Determine the public URL
-        // Use the host from the request headers to ensure the client can reach it back
-        // This solves the 'localhost' vs '172.16.x.x' issue automatically
+        // 2. Determine the public URL (Production-Aware)
         const protocol = req.protocol;
-        const host = req.get('host'); // e.g. 'localhost:5000' or '172.16.25.5:5000'
-
+        const host = req.get('host');
         const localPublicUrl = `${protocol}://${host}/api/uploads/${fileName}`;
+
         let publicUrl = localPublicUrl;
-        if (useLocal) {
-            // Try R2 upload as a backup (non-blocking in local mode)
+        const canUseR2 = hasR2Config();
+
+        if (canUseR2) {
+            const s3 = getS3Client();
             const uploadParams = {
-                Bucket: process.env.R2_BUCKET_NAME,
+                Bucket: process.env.R2_BUCKET_NAME || 'samanyudu-media',
                 Key: fileName,
-                Body: req.file.buffer,
+                Body: fs.readFileSync(finalPath),
                 ContentType: req.file.mimetype,
             };
-            const s3 = getS3Client();
-            if (!s3) {
-                console.warn('[R2] Backup upload skipped because configuration is incomplete');
-            } else {
-                s3.send(new PutObjectCommand(uploadParams))
-                    .then(() => console.log(`[R2] Backup upload successful: ${fileName}`))
-                    .catch(err => console.error(`[R2] Backup upload failed (ignoring in local mode):`, err.message));
-            }
-        } else {
-            const canUseR2 = hasR2Config();
 
-            if (canUseR2) {
-                const s3 = getS3Client();
-                const uploadParams = {
-                    Bucket: process.env.R2_BUCKET_NAME,
-                    Key: fileName,
-                    Body: req.file.buffer,
-                    ContentType: req.file.mimetype,
-                };
-
-                try {
-                    await s3.send(new PutObjectCommand(uploadParams));
-                    if (process.env.R2_PUBLIC_DOMAIN) {
-                        publicUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
-                    }
-                } catch (r2Error) {
-                    console.error('[R2] Upload failed, falling back to local file serving:', r2Error.message);
-                    publicUrl = localPublicUrl;
+            try {
+                await s3.send(new PutObjectCommand(uploadParams));
+                if (process.env.R2_PUBLIC_DOMAIN) {
+                    publicUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
                 }
-            } else {
-                console.warn('[R2] Missing configuration, falling back to local file serving');
+                console.log(`[R2] Uploaded successfully: ${fileName}`);
+            } catch (r2Error) {
+                console.error('[R2] Upload failed, falling back to local file serving:', r2Error.message);
                 publicUrl = localPublicUrl;
             }
+        } else {
+            console.warn('[R2] Missing configuration, falling back to local file serving');
+            publicUrl = localPublicUrl;
         }
 
         console.log(`[Upload] Completed. URL: ${publicUrl}`);
         res.json({ url: publicUrl });
     } catch (err) {
         console.error('Error in upload process:', err);
+        // Attempt cleanup
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         res.status(500).json({ error: 'File processing failed', details: err.message });
     }
 });
@@ -1685,7 +1783,7 @@ app.post('/api/user/:id/save', async (req, res) => {
 app.post('/api/user/:id/sync-saved', async (req, res) => {
     try {
         const { id } = req.params;
-        const { news, shorts } = req.body; // Arrays of IDs
+        const { news, shorts } = req.body;
 
         if (news && Array.isArray(news)) {
             for (const itemId of news) {
@@ -1700,47 +1798,91 @@ app.post('/api/user/:id/sync-saved', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('Error syncing saved items:', error);
-        res.status(510).json({ error: 'Failed to sync saved items' });
+        res.status(500).json({ error: 'Failed to sync saved items' });
+    }
+});
+
+app.post('/api/auth/register-email', async (req, res) => {
+    try {
+        const { firstName, lastName, email, otp, password } = req.body;
+        if (!firstName || !lastName || !email || !otp || !password) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const storedData = emailOtpStore.get(email);
+        if (!storedData || storedData.expires < Date.now()) {
+            return res.status(400).json({ error: 'Invalid or expired OTP' });
+        }
+
+        if (storedData.otp !== String(otp).trim() || storedData.type !== 'signup') {
+            return res.status(400).json({ error: 'Invalid OTP' });
+        }
+
+        const name = `${firstName} ${lastName}`;
+        const { rows: existingUser } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (existingUser.length > 0) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+
+        const { rows } = await db.query(
+            'INSERT INTO users (first_name, last_name, name, email, password) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [firstName, lastName, name, email, await bcrypt.hash(password.trim(), 10)]
+        );
+        const user = rows[0];
+
+        emailOtpStore.delete(email);
+        res.json({ success: true, user });
+    } catch (err) {
+        console.error('Email registration error:', err);
+        res.status(500).json({ error: 'Registration failed' });
     }
 });
 
 app.post('/api/auth/send-email-otp', async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, type = 'signup' } = req.body;
         if (!email) return res.status(400).json({ error: 'Email is required' });
 
-        // Check for existing user before sending OTP
         const { rows: userCheck } = await db.query('SELECT 1 FROM users WHERE email = $1', [email]);
-        if (userCheck.length > 0) {
-            return res.status(400).json({ error: 'ఇమెయిల్ ఇప్పటికే నమోదు చేయబడింది. దయచేసి లాగిన్ చేయండి.' }); // Translated: Email already registered. Please login.
+        if (type === 'signup' && userCheck.length > 0) {
+            return res.status(400).json({ error: 'Email already registered. Please login.' });
+        }
+        if (type === 'reset' && userCheck.length === 0) {
+            return res.status(404).json({ error: 'No account found with this email' });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        emailOtpStore.set(email, { otp, expires: Date.now() + 10 * 60 * 1000 });
+        emailOtpStore.set(email, { otp, type, expires: Date.now() + 10 * 60 * 1000 });
 
-        if (resend) {
+        const subject = type === 'reset' ? 'Password Reset Verification' : 'Your Signup Verification Code';
+        const html = type === 'reset'
+            ? `<h3>Password Reset Code: <b>${otp}</b></h3><p>Enter this code to reset your password. It will expire in 10 minutes.</p>`
+            : `<h3>Your Verification Code is: <b>${otp}</b></h3><p>This code will expire in 10 minutes.</p>`;
+
+        if (typeof resend !== 'undefined' && resend) {
             try {
                 await resend.emails.send({
                     from: 'Samanyudu TV <noreply@samanyudutv.in>',
                     to: email,
-                    subject: 'Your Signup Verification Code',
-                    html: `<h3>Your Verification Code is: <b>${otp}</b></h3><p>This code will expire in 10 minutes.</p>`
+                    subject: subject,
+                    html: html
                 });
-                return res.json({ success: true, message: 'OTP sent to email' });
+                return res.json({ success: true, message: 'OTP sent to email', type });
             } catch (err) {
                 console.error('Resend email failed:', err.message);
             }
         }
 
-        if (transporter) {
+        if (typeof transporter !== 'undefined' && transporter) {
             try {
                 await transporter.sendMail({
-                    from: process.env.SMTP_USER,
+                    from: '"Samanyudu TV" <' + (process.env.SMTP_FROM || process.env.SMTP_USER) + '>',
                     to: email,
-                    subject: 'Your Signup Verification Code',
-                    html: `<h3>Your Verification Code is: <b>${otp}</b></h3><p>This code will expire in 10 minutes.</p>`
+                    subject: subject,
+                    html: html
                 });
-                return res.json({ success: true, message: 'OTP sent to email via SMTP' });
+                return res.json({ success: true, message: 'OTP sent to email via SMTP', type });
             } catch (err) {
                 console.error('SMTP email failed:', err.message);
                 throw err;
@@ -1754,35 +1896,36 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
     }
 });
 
-app.post('/api/auth/register-email', async (req, res) => {
+app.post('/api/auth/reset-password-email', async (req, res) => {
     try {
-        const { firstName, lastName, email, otp, password } = req.body;
-        if (!firstName || !lastName || !email || !otp || !password) return res.status(400).json({ error: 'All fields are required' });
+        const { email, otp, newPassword } = req.body;
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ error: 'Email, OTP and new password are required' });
+        }
 
         const storedData = emailOtpStore.get(email);
         if (!storedData || storedData.expires < Date.now()) {
             return res.status(400).json({ error: 'Invalid or expired OTP' });
         }
 
-        if (storedData.otp !== String(otp).trim()) {
+        if (storedData.otp !== String(otp).trim() || storedData.type !== 'reset') {
             return res.status(400).json({ error: 'Invalid OTP' });
         }
 
-        const { rows: existing } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (existing.length > 0) return res.status(400).json({ error: 'Email already registered' });
+        const { rowCount } = await db.query('UPDATE users SET password = $1 WHERE email = $2', [await bcrypt.hash(newPassword.trim(), 10), email]);
 
-        const passTrimmed = String(password).trim();
-        const fullName = `${firstName} ${lastName}`.trim();
-        const query = 'INSERT INTO users (first_name, last_name, email, password, name) VALUES ($1, $2, $3, $4, $5) RETURNING *';
-        const result = await db.query(query, [firstName, lastName, email, passTrimmed, fullName]);
+        if (rowCount === 0) {
+            return res.status(404).json({ error: 'Account not found with this email' });
+        }
 
         emailOtpStore.delete(email);
-        res.json({ success: true, user: { id: result.rows[0].id, email: result.rows[0].email, name: result.rows[0].name } });
+        res.json({ success: true, message: 'Password reset successfully' });
     } catch (err) {
-        console.error("Error registering via email:", err);
+        console.error("Error resetting password via email:", err);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
 // Image Proxy for CanvasKit
 const https = require('https');
@@ -1826,7 +1969,7 @@ app.post('/api/settings', async (req, res) => {
 
 // Start server
 app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 API Backend running on http://0.0.0.0:${port}`);
+    console.log(`ðŸš€ API Backend running on http://0.0.0.0:${port}`);
 });
 
 
@@ -1836,12 +1979,16 @@ async function init() {
         await db.query('CREATE TABLE IF NOT EXISTS app_settings (key VARCHAR PRIMARY KEY, value JSONB)');
         await db.query("INSERT INTO app_settings (key, value) VALUES ('maintenance_mode', 'false') ON CONFLICT (key) DO NOTHING");
         await db.query("INSERT INTO app_settings (key, value) VALUES ('live_youtube_url', '\"\"') ON CONFLICT (key) DO NOTHING");
-        console.log('✅ Settings table initialized');
+        console.log('âœ… Settings table initialized');
     } catch (err) {
-        console.error('❌ Failed to initialize settings table:', err.message);
+        console.error('âŒ Failed to initialize settings table:', err.message);
     }
 }
 
 init();
+
+// Keep alive
+setInterval(() => { }, 60000);
+
 
 

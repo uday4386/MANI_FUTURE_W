@@ -1,4 +1,4 @@
-export type NewsType = 'Political' | 'Accident' | 'Education' | 'Crime' | 'Weather' | 'Sports' | 'Business' | 'Social' | 'Classifieds' | 'Jobs' | 'Real Estate' | 'Marriage' | 'Live' | 'Others';
+export type NewsType = 'Political' | 'AndhraPradesh' | 'Telangana' | 'National' | 'International' | 'Crime' | 'Education' | 'Jobs' | 'Classifieds' | 'Live' | 'Business' | 'Sports' | 'Agriculture' | 'Marriage' | 'RealEstate' | 'Bhakthi' | 'Health' | 'Social' | 'Accident' | 'Weather' | 'Others';
 
 export interface MarriageDetails {
     full_name?: string;
@@ -56,6 +56,7 @@ export interface ShortItem {
     commentsCount?: number;
     area?: string;
     author?: string;
+    status?: 'published' | 'pending' | 'rejected';
 }
 
 export interface Advertisement {
@@ -65,5 +66,6 @@ export interface Advertisement {
     displayInterval?: number; // DB: display_interval
     clickUrl?: string; // DB: click_url
     isActive: boolean; // DB: is_active
+    status?: 'published' | 'pending' | 'rejected';
     timestamp: string;
 }

@@ -89,6 +89,7 @@ Run-Step "Create deploy bundle" {
     }
     tar -czf $Bundle `
         --exclude='node_modules' `
+        --exclude='backend_api/uploads' `
         backend_api `
         dist `
         public_web_app `

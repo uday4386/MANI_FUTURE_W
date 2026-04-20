@@ -9,15 +9,17 @@ async function seedSuperAdmins() {
     ];
 
     try {
-        console.log('Seeding super admins...');
+        const bcrypt = require('bcryptjs');
+        console.log('Seeding super admins with hashed passwords...');
         for (const admin of admins) {
+            const hashedPassword = await bcrypt.hash(admin.password, 10);
             await db.query(`
                 INSERT INTO admin_users (email, password, name, role) 
                 VALUES ($1, $2, $3, 'super_admin') 
                 ON CONFLICT (email) DO NOTHING
-            `, [admin.email, admin.password, admin.name]);
+            `, [admin.email, hashedPassword, admin.name]);
         }
-        console.log('✅ Super admins seeded successfully!');
+        console.log('Super admins seeded successfully!');
         process.exit(0);
     } catch (err) {
         console.error('❌ Seeding failed:', err);

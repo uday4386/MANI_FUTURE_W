@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   var toggle = document.querySelector("[data-nav-toggle]");
   var nav = document.querySelector("[data-nav]");
   var LANG_KEY = "samanyudu_lang";
@@ -172,7 +172,15 @@
     var resp = await fetch(apiBase() + "/news", { headers: { "Accept": "application/json" } });
     if (!resp.ok) throw new Error("news fetch failed");
     var rows = await resp.json();
-    return Array.isArray(rows) ? rows.map(normalize) : [];
+    if (!Array.isArray(rows)) return [];
+    
+    // Safety Filter: Only allow published news or legacy items with no status
+    var publishedOnly = rows.filter(function(item) {
+        var s = (item.status || "").toLowerCase();
+        return s === "published" || s === "" || item.status === null;
+    });
+
+    return publishedOnly.map(normalize);
   }
 
   async function renderListPage(pageType) {
@@ -245,6 +253,13 @@
     }
   }
 
+  async function init() {
+    injectLanguageControl();
+    applyStaticLanguage();
+    renderNewsPage();
+  }
+
+
   function renderNewsPage() {
     var page = (document.body && document.body.dataset && document.body.dataset.page) || "";
     if (page === "home") return renderListPage("home");
@@ -255,9 +270,7 @@
     if (page === "article") return renderArticlePage();
   }
 
-  injectLanguageControl();
-  applyStaticLanguage();
-  renderNewsPage();
+  init();
 
   // Auto-refresh news every 60 seconds without page refresh
   setInterval(function () {

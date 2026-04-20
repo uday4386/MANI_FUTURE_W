@@ -3,18 +3,16 @@ import { NewsItem, ShortItem, NewsType } from '../types';
 const normalizeApiBase = (value: string): string => value.replace(/\/+$/, '');
 
 const resolveApiUrl = (): string => {
-    // Runtime override support (if a config script sets this global)
     const runtimeBase =
         typeof window !== 'undefined'
             ? (window as any).SAMANYUDU_API_BASE || (window as any).__SAMANYUDU_API_BASE
             : '';
     if (runtimeBase && typeof runtimeBase === 'string') return normalizeApiBase(runtimeBase);
 
-    // Build-time override
     const envBase = import.meta.env.VITE_API_URL;
     if (envBase && typeof envBase === 'string') return normalizeApiBase(envBase);
 
-    // Production cloud API on DigitalOcean
+    // Default to Production Cloud API (DigitalOcean)
     return 'https://api.samanyudutv.in/api';
 };
 
@@ -39,14 +37,31 @@ const getErrorMessage = async (res: Response, fallback: string): Promise<string>
 
 export const normalizeMediaUrl = (url: string | undefined): string => {
     if (!url) return '';
-    return url
-        .replace(/^http:\/\/api\.samanyudutv\.in/i, 'https://api.samanyudutv.in')
-        .replace(/^http:\/\/localhost:5000/i, 'https://api.samanyudutv.in')
-        .replace(/^http:\/\/127\.0\.0\.1:5000/i, 'https://api.samanyudutv.in')
-        .replace(
-            /^http:\/\/[0-9.]+:5000\/uploads/i,
-            'https://api.samanyudutv.in/api/uploads'
-        );
+    let normalized = url;
+
+    // Fix relative paths missing the host (e.g., 'uploads/videos/123.mp4')
+    if (normalized.startsWith('uploads/') || normalized.startsWith('assets/')) {
+        normalized = `/${normalized}`;
+    }
+    if (normalized.startsWith('/uploads/') || normalized.startsWith('/assets/')) {
+        const basePath = API_URL.replace(/\/api$/, '');
+        normalized = `${basePath}${normalized}`;
+    }
+
+    // Only force-rewrite localhost to production IF we are actually connected to production API.
+    // If our API_URL is localhost, we MUST keep localhost intact so local video uploads work!
+    if (!API_URL.includes('localhost') && !API_URL.includes('127.0.0.1')) {
+        normalized = normalized
+            .replace(/^http:\/\/api\.samanyudutv\.in/i, 'https://api.samanyudutv.in')
+            .replace(/^http:\/\/localhost:5000/i, 'https://api.samanyudutv.in')
+            .replace(/^http:\/\/127\.0\.0\.1:5000/i, 'https://api.samanyudutv.in')
+            .replace(
+                /^http:\/\/[0-9.]+:5000\/uploads/i,
+                'https://api.samanyudutv.in/api/uploads'
+            );
+    }
+
+    return normalized;
 };
 
 export const api = {
@@ -60,7 +75,7 @@ export const api = {
         url += params.toString();
         // Remove trailing '?' if no params
         if (url.endsWith('?')) url = url.slice(0, -1);
-        
+
         const res = await fetch(url);
         if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch news'));
         const data = await res.json();
@@ -164,11 +179,15 @@ export const api = {
     },
 
     // --- SHORTS ---
-    async getShorts(district?: string, role?: string) {
-        let url = `${API_URL}/shorts`;
-        if (role && district) {
-            url += `?role=${role}&district=${encodeURIComponent(district)}`;
-        }
+    async getShorts(district?: string, role?: string, status?: string) {
+        let url = `${API_URL}/shorts?`;
+        const params = new URLSearchParams();
+        if (role) params.append('role', role);
+        if (district) params.append('district', district);
+        if (status) params.append('status', status);
+        url += params.toString();
+        if (url.endsWith('?')) url = url.slice(0, -1);
+
         const res = await fetch(url);
         if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch shorts'));
         const data = await res.json();
@@ -180,7 +199,8 @@ export const api = {
             duration: item.duration,
             timestamp: item.timestamp,
             area: item.area,
-            author: item.author
+            author: item.author,
+            status: item.status as 'published' | 'pending' | 'rejected'
         })) as ShortItem[];
     },
 
@@ -194,6 +214,7 @@ export const api = {
                 duration: short.duration,
                 area: short.area,
                 author: short.author,
+                status: short.status || 'pending',
             })
         });
         if (!res.ok) throw new Error('Failed to create short');
@@ -205,6 +226,7 @@ export const api = {
         if (short.title !== undefined) updates.title = short.title;
         if (short.videoUrl !== undefined) updates.video_url = short.videoUrl;
         if (short.duration !== undefined) updates.duration = short.duration;
+        if (short.status !== undefined) updates.status = short.status;
 
         const res = await fetch(`${API_URL}/shorts/${id}`, {
             method: 'PUT',
@@ -221,8 +243,12 @@ export const api = {
     },
 
     // --- ADVERTISEMENTS ---
-    async getAdvertisements() {
-        const res = await fetch(`${API_URL}/advertisements`);
+    async getAdvertisements(status?: string) {
+        let url = `${API_URL}/advertisements?`;
+        if (status) url += `status=${status}`;
+        if (url.endsWith('?')) url = url.slice(0, -1);
+
+        const res = await fetch(url);
         if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch advertisements'));
         const data = await res.json();
 
@@ -233,6 +259,7 @@ export const api = {
             clickUrl: item.click_url,
             displayInterval: item.display_interval,
             isActive: item.is_active,
+            status: item.status as 'published' | 'pending' | 'rejected',
             timestamp: item.timestamp
         }));
     },
@@ -247,6 +274,7 @@ export const api = {
                 display_interval: ad.displayInterval || 4,
                 click_url: ad.clickUrl,
                 is_active: ad.isActive,
+                status: ad.status || 'published',
             })
         });
         if (!res.ok) throw new Error('Failed to create advertisement');
@@ -258,6 +286,7 @@ export const api = {
             displayInterval: data.display_interval,
             clickUrl: data.click_url,
             isActive: data.is_active,
+            status: data.status as 'published' | 'pending' | 'rejected',
             timestamp: data.timestamp
         };
     },
@@ -269,6 +298,7 @@ export const api = {
         if (ad.displayInterval !== undefined) updates.display_interval = ad.displayInterval;
         if (ad.clickUrl !== undefined) updates.click_url = ad.clickUrl;
         if (ad.isActive !== undefined) updates.is_active = ad.isActive;
+        if (ad.status !== undefined) updates.status = ad.status;
 
         const res = await fetch(`${API_URL}/advertisements/${id}`, {
             method: 'PUT',
@@ -284,6 +314,7 @@ export const api = {
             displayInterval: data.display_interval,
             clickUrl: data.click_url,
             isActive: data.is_active,
+            status: data.status as 'published' | 'pending' | 'rejected',
             timestamp: data.timestamp
         };
     },
@@ -299,15 +330,16 @@ export const api = {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Use our new backend custom R2 upload route
         const res = await fetch(`${API_URL}/upload`, {
             method: 'POST',
             body: formData,
         });
 
         if (!res.ok) {
-            const msg = await getErrorMessage(res, 'Upload failed');
-            console.error("Backend Upload Error:", msg);
+            // Get detailed error from backend if available
+            const errorData = await res.json().catch(() => ({}));
+            const msg = errorData.error || `Upload failed (Status ${res.status})`;
+            console.error("Backend Upload Error Details:", errorData);
             throw new Error(msg);
         }
 
