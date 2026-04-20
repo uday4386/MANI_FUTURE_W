@@ -11,3 +11,9 @@ build/
 /samanyudu.sql
 /samanyudu.dump
 /deploy_bundle*.tgz
+*.json
+backend_api/*.json
+backend_api/*.txt
+backend_api/*.log
+backend_api/db_output.json
+*.apk
