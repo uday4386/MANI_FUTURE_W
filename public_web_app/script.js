@@ -11,6 +11,7 @@
     });
   }
 
+  
   function injectLanguageControl() {
     if (document.querySelector("[data-lang-control]")) return;
     var footerMeta = document.querySelector(".site-footer .footer-grid section:last-child");
@@ -43,9 +44,11 @@
     select.addEventListener("change", function (event) {
       currentLang = event.target.value === "te" ? "te" : "en";
       localStorage.setItem(LANG_KEY, currentLang);
-      label.textContent = currentLang === "te" ? "భాష" : "Language";
-      applyStaticLanguage();
-      renderNewsPage();
+      
+      // Set Google Translate cookie
+      document.cookie = "googtrans=/en/" + currentLang + "; path=/";
+      document.cookie = "googtrans=/en/" + currentLang + "; domain=" + window.location.hostname + "; path=/";
+      window.location.reload();
     });
 
     wrap.appendChild(label);
@@ -53,48 +56,36 @@
     footerMeta.insertBefore(wrap, footerMeta.lastElementChild);
   }
 
-  var teMap = {
-    "Home": "హోమ్",
-    "Latest News": "తాజా వార్తలు",
-    "Politics": "రాజకీయాలు",
-    "Sports": "క్రీడలు",
-    "About Us": "మా గురించి",
-    "Contact": "సంప్రదించండి",
-    "Breaking News:": "బ్రేకింగ్ న్యూస్:",
-    "Top Stories - Samanyudu TV": "ముఖ్య కథనాలు - సామాన్యుడు టీవీ",
-    "Live stories from admin dashboard uploads.": "అడ్మిన్ డ్యాష్‌బోర్డ్ అప్లోడ్ల నుంచి లైవ్ కథనాలు.",
-    "Automatically updated from admin dashboard.": "అడ్మిన్ డ్యాష్‌బోర్డ్ నుంచి ఆటోమేటిక్‌గా నవీకరణ.",
-    "About Samanyudu TV": "సామాన్యుడు టీవీ గురించి",
-    "Quick Links": "త్వరిత లింకులు",
-    "Privacy Policy": "గోప్యతా విధానం",
-    "Terms & Conditions": "నిబంధనలు",
-    "Loading latest updates...": "తాజా అప్డేట్లు లోడ్ అవుతున్నాయి...",
-    "No news published yet.": "ఇంకా వార్తలు ప్రచురించబడలేదు.",
-    "Unable to load news right now.": "ప్రస్తుతం వార్తలు లోడ్ చేయలేకపోయాం.",
-    "Back to Home": "హోమ్‌కు తిరుగు",
-    "Article not found.": "వార్త కనబడలేదు.",
-    "Loading article...": "వార్త లోడ్ అవుతోంది..."
-  };
+  function injectGoogleTranslate() {
+    // Hide the Google Translate UI
+    var style = document.createElement("style");
+    style.innerHTML = "body { top: 0 !important; } .skiptranslate { display: none !important; } #google_translate_element { display: none !important; }";
+    document.head.appendChild(style);
 
-  function translate(s) {
-    if (currentLang !== "te") return s;
-    return teMap[s] || s;
-  }
+    var gtContainer = document.createElement("div");
+    gtContainer.id = "google_translate_element";
+    document.body.appendChild(gtContainer);
 
-  function applyStaticLanguage() {
-    document.documentElement.lang = currentLang === "te" ? "te" : "en";
-    var nodes = document.querySelectorAll("h1, h2, p, a, button, strong");
-    for (var i = 0; i < nodes.length; i += 1) {
-      var n = nodes[i];
-      if (n.querySelector("img, svg, input, select, textarea")) {
-        continue;
-      }
-      if (!n.dataset.enOriginal) n.dataset.enOriginal = n.textContent;
-      n.textContent = translate(n.dataset.enOriginal);
+    window.googleTranslateElementInit = function() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'en,te',
+        autoDisplay: false
+      }, 'google_translate_element');
+    };
+
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    document.head.appendChild(script);
+    
+    // Ensure cookie matches currentLang on load
+    if (currentLang === "te" && document.cookie.indexOf("googtrans=/en/te") === -1) {
+      document.cookie = "googtrans=/en/te; path=/";
+      document.cookie = "googtrans=/en/te; domain=" + window.location.hostname + "; path=/";
     }
   }
-
-  function apiBase() {
+        function apiBase() {
     if (window.SAMANYUDU_API_BASE) return window.SAMANYUDU_API_BASE;
     var saved = localStorage.getItem("samanyudu_api_base");
     if (saved) return saved;
@@ -193,7 +184,7 @@
       var filtered = all.filter(function (n) { return categoryMatch(n, pageType); });
 
       if (!filtered.length) {
-        grid.innerHTML = '<article class="content-card"><p>' + translate("No news published yet.") + "</p></article>";
+        grid.innerHTML = '<article class="content-card"><p>' + ("No news published yet.") + "</p></article>";
       } else {
         grid.innerHTML = filtered.map(buildCard).join("");
       }
@@ -201,12 +192,12 @@
       var br = document.getElementById("breaking-text");
       if (br) {
         var bItem = all.find(function (n) { return n.breaking; }) || filtered[0] || all[0];
-        br.textContent = bItem ? bItem.title : translate("No news published yet.");
+        br.textContent = bItem ? bItem.title : ("No news published yet.");
       }
     } catch (e) {
-      grid.innerHTML = '<article class="content-card"><p>' + translate("Unable to load news right now.") + "</p></article>";
+      grid.innerHTML = '<article class="content-card"><p>' + ("Unable to load news right now.") + "</p></article>";
       var brFallback = document.getElementById("breaking-text");
-      if (brFallback) brFallback.textContent = translate("Unable to load news right now.");
+      if (brFallback) brFallback.textContent = ("Unable to load news right now.");
     }
   }
 
@@ -214,12 +205,12 @@
     var root = document.getElementById("article-root");
     if (!root) return;
 
-    root.innerHTML = '<article class="content-card"><p>' + translate("Loading article...") + "</p></article>";
+    root.innerHTML = '<article class="content-card"><p>' + ("Loading article...") + "</p></article>";
     var params = new URLSearchParams(window.location.search);
     var id = params.get("id");
 
     if (!id) {
-      root.innerHTML = '<article class="content-card"><p>' + translate("Article not found.") + '</p><p><a href="/">' + translate("Back to Home") + "</a></p></article>";
+      root.innerHTML = '<article class="content-card"><p>' + ("Article not found.") + '</p><p><a href="/">' + ("Back to Home") + "</a></p></article>";
       return;
     }
 
@@ -228,7 +219,7 @@
       var match = all.find(function (n) { return String(n.id) === String(id); });
 
       if (!match) {
-        root.innerHTML = '<article class="content-card"><p>' + translate("Article not found.") + '</p><p><a href="/">' + translate("Back to Home") + "</a></p></article>";
+        root.innerHTML = '<article class="content-card"><p>' + ("Article not found.") + '</p><p><a href="/">' + ("Back to Home") + "</a></p></article>";
         return;
       }
 
@@ -246,17 +237,17 @@
         '<h1 class="page-title">' + escapeHtml(match.title) + "</h1>" +
         hero +
         '<section class="article-body"><p>' + escapeHtml(match.summary || "") + "</p></section>" +
-        '<p><a href="/">' + translate("Back to Home") + "</a></p>" +
+        '<p><a href="/">' + ("Back to Home") + "</a></p>" +
         "</article>";
     } catch (e) {
-      root.innerHTML = '<article class="content-card"><p>' + translate("Unable to load news right now.") + '</p><p><a href="/">' + translate("Back to Home") + "</a></p></article>";
+      root.innerHTML = '<article class="content-card"><p>' + ("Unable to load news right now.") + '</p><p><a href="/">' + ("Back to Home") + "</a></p></article>";
     }
   }
 
   async function init() {
     injectLanguageControl();
-    applyStaticLanguage();
-    renderNewsPage();
+    injectGoogleTranslate();
+        renderNewsPage();
   }
 
 

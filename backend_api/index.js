@@ -1,12 +1,24 @@
-const bcrypt = require('bcryptjs');
+const fs = require('fs');
 const path = require('path');
+const crashLogPath = path.join(__dirname, 'crash_report.log');
+
+// EMERGENCY CRASH RECORDER
+process.on('uncaughtException', (err) => {
+    const msg = `\n[${new Date().toISOString()}] FATAL CRASH: ${err.stack || err}\n`;
+    try { fs.appendFileSync(crashLogPath, msg); } catch (e) {}
+    console.error(msg);
+    process.exit(1);
+});
+
+const bcrypt = require('bcryptjs');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
+
 const cors = require('cors');
 const multer = require('multer');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const fs = require('fs');
 const archiver = require('archiver');
+
 const fetch = require('node-fetch'); // For AuthKey API
 // const { api } = require('./services/api');
 const db = require('./db');
@@ -51,6 +63,8 @@ async function sendPushNotification(title, body, newsId, type = 'news') {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Enable trust proxy for DigitalOcean/Nginx
+
 
 // Auto-fix database schema
 (async () => {
@@ -156,15 +170,20 @@ const localhostOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin) || localhostOriginPattern.test(origin)) {
+        // Allow requests with no origin (like mobile apps) or matching origins
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || localhostOriginPattern.test(origin)) {
             callback(null, true);
         } else {
+            console.error('[CORS Error] Origin not allowed:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'x-requester-email'],
     exposedHeaders: ['Content-Disposition', 'Content-Type']
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -207,6 +226,7 @@ function getS3Client() {
             accessKeyId: process.env.R2_ACCESS_KEY_ID,
             secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
         },
+        forcePathStyle: true,
     });
 }
 
@@ -796,6 +816,71 @@ app.delete('/api/admin/reporters/:id', async (req, res) => {
     }
 });
 
+// Manage Super Admins (Master Admin Only: syncai@gmail.com)
+app.get('/api/admin/super_admins', async (req, res) => {
+    try {
+        const requester = req.headers['x-requester-email'];
+        if (requester !== 'syncai@gmail.com') return res.status(403).json({ error: 'Forbidden. Only syncai@gmail.com can manage super admins.' });
+
+        const { rows } = await db.query("SELECT id, email, password, name, role, state, district, created_at FROM admin_users WHERE role = 'super_admin' ORDER BY created_at DESC");
+        res.json(rows);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch super admins' });
+    }
+});
+
+app.post('/api/admin/super_admins', async (req, res) => {
+    try {
+        const requester = req.headers['x-requester-email'];
+        if (requester !== 'syncai@gmail.com') return res.status(403).json({ error: 'Forbidden' });
+
+        const { email, password, name } = req.body;
+        const query = 'INSERT INTO admin_users (email, password, name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, name, role';
+        const { rows } = await db.query(query, [email, password, name, 'super_admin']);
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        if (error.code === '23505') return res.status(400).json({ error: 'Email already exists' });
+        res.status(500).json({ error: 'Failed to create super admin' });
+    }
+});
+
+app.put('/api/admin/super_admins/:id', async (req, res) => {
+    try {
+        const requester = req.headers['x-requester-email'];
+        if (requester !== 'syncai@gmail.com') return res.status(403).json({ error: 'Forbidden' });
+
+        const { id } = req.params;
+        const updates = req.body;
+        const keys = Object.keys(updates);
+        if (keys.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+        const setClause = keys.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
+        const values = Object.values(updates);
+        values.push(id);
+
+        const query = `UPDATE admin_users SET ${setClause} WHERE id = $${values.length} RETURNING id, email, password, name, role;`;
+        const { rows } = await db.query(query, values);
+
+        if (rows.length === 0) return res.status(404).json({ error: 'Super Admin not found' });
+        res.json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update super admin' });
+    }
+});
+
+app.delete('/api/admin/super_admins/:id', async (req, res) => {
+    try {
+        const requester = req.headers['x-requester-email'];
+        if (requester !== 'syncai@gmail.com') return res.status(403).json({ error: 'Forbidden' });
+
+        const { id } = req.params;
+        await db.query("DELETE FROM admin_users WHERE id = $1 AND email != 'syncai@gmail.com'", [id]);
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete super admin' });
+    }
+});
+
 // Maintenance Mode
 app.get('/api/admin/settings/maintenance', async (req, res) => {
     try {
@@ -1054,6 +1139,36 @@ app.delete('/api/admin/news/wipe', async (req, res) => {
     } catch (error) {
         console.error('Wipe failed:', error);
         res.status(500).json({ error: 'Failed to wipe data' });
+    }
+});
+
+app.get('/api/news/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = `
+            SELECT n.*, 
+                   (SELECT json_build_object(
+                       'full_name', m.full_name, 'gender', m.gender, 'date_of_birth', m.date_of_birth,
+                       'age', m.age, 'profile_photo', m.profile_photo, 'location', m.location,
+                       'native_place', m.native_place, 'religion', m.religion, 'caste', m.caste,
+                       'sub_caste', m.sub_caste, 'mother_tongue', m.mother_tongue,
+                       'highest_education', m.highest_education, 'college_name', m.college_name,
+                       'occupation', m.occupation, 'company_name', m.company_name,
+                       'annual_income', m.annual_income, 'father_name', m.father_name,
+                       'father_occupation', m.father_occupation, 'mother_name', m.mother_name,
+                       'mother_occupation', m.mother_occupation, 'siblings', m.siblings,
+                       'phone_number', m.phone_number, 'email', m.email,
+                       'whatsapp_number', m.whatsapp_number, 'is_contact_visible', m.is_contact_visible
+                   ) FROM marriage_profiles m WHERE m.news_id = n.id) as marriage_details
+            FROM news n
+            WHERE n.id = $1
+        `;
+        const { rows } = await db.query(query, [id]);
+        if (rows.length === 0) return res.status(404).json({ error: 'News not found' });
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching single news:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
@@ -1692,58 +1807,97 @@ app.get('/api/user/:id/likes', async (req, res) => {
     }
 });
 
-app.post('/api/upload', upload.single('file'), handleUploadError, async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
-    const fileName = req.file.filename;
+// Robust upload route supporting multiple field names
+app.post('/api/upload', (req, res, next) => {
+    console.log(`[Upload DEBUG] Request received from ${req.ip} - Content-Length: ${req.headers['content-length']}`);
+    next();
+}, upload.any(), async (req, res) => {
+    console.log('[Upload DEBUG] Multer parsing complete');
 
     try {
-        // 1. Move from tmp to final uploads folder for serving
-        const finalPath = path.join(uploadsDir, fileName);
-        fs.renameSync(req.file.path, finalPath);
-        console.log(`[Upload] Finalized locally: ${fileName}`);
+        const uploadedFile = (req.files && req.files.length > 0) ? req.files[0] : null;
 
-        // 2. Determine the public URL (Production-Aware)
+        if (!uploadedFile) {
+            console.warn('[Upload] No file found in request');
+            return res.status(400).json({ error: 'à°Žà°Ÿà± à°µà°‚à°Ÿà°¿ à°«à±ˆà°²à±  à°…à°‚à°¦à°²à±‡à°¦à±  (No file received)' });
+        }
+
+        const fileName = uploadedFile.filename;
+        const finalPath = path.join(uploadsDir, fileName);
+        console.log(`[Upload DEBUG] 1. Saving locally to: ${finalPath}`);
+
+        // Move from tmp to final uploads folder
+        try {
+            fs.renameSync(uploadedFile.path, finalPath);
+            console.log('[Upload DEBUG] 2. renameSync successful');
+        } catch (renameErr) {
+            console.warn('[Upload DEBUG] renameSync failed, using copy fallback');
+            try {
+                fs.copyFileSync(uploadedFile.path, finalPath);
+                console.log('[Upload DEBUG] 2b. copyFileSync successful');
+                try { fs.unlinkSync(uploadedFile.path); } catch (e) {}
+            } catch (copyErr) {
+                console.error('[Upload DEBUG] CRASH at copyFileSync:', copyErr.message);
+                throw copyErr;
+            }
+        }
+
         const protocol = req.protocol;
         const host = req.get('host');
         const localPublicUrl = `${protocol}://${host}/api/uploads/${fileName}`;
-
         let publicUrl = localPublicUrl;
-        const canUseR2 = hasR2Config();
 
-        if (canUseR2) {
-            const s3 = getS3Client();
-            const uploadParams = {
-                Bucket: process.env.R2_BUCKET_NAME || 'samanyudu-media',
-                Key: fileName,
-                Body: fs.readFileSync(finalPath),
-                ContentType: req.file.mimetype,
-            };
-
+        // 4. Try R2 if enabled (Temporarily disabled to fix 502 crash)
+        const canUseR2 = false; 
+        if (canUseR2 && hasR2Config()) {
             try {
-                await s3.send(new PutObjectCommand(uploadParams));
+                console.log('[Upload DEBUG] 4. R2 Config found, starting upload...');
+                const s3 = getS3Client();
+                if (!s3) throw new Error('S3 client not initialized');
+
+                const stats = fs.statSync(finalPath);
+                const isLargeFile = stats.size > 5 * 1024 * 1024; // > 5MB
+                
+                let uploadBody;
+                if (isLargeFile) {
+                    console.log(`[Upload DEBUG] Large file detected (${(stats.size/1024/1024).toFixed(1)}MB), using stream.`);
+                    uploadBody = fs.createReadStream(finalPath);
+                } else {
+                    console.log(`[Upload DEBUG] Small file detected (${(stats.size/1024).toFixed(1)}KB), using buffer.`);
+                    uploadBody = fs.readFileSync(finalPath);
+                }
+                
+                await s3.send(new PutObjectCommand({
+                    Bucket: process.env.R2_BUCKET_NAME || 'samanyudu-media',
+                    Key: fileName,
+                    Body: uploadBody,
+                    ContentType: uploadedFile.mimetype,
+                }));
+
                 if (process.env.R2_PUBLIC_DOMAIN) {
                     publicUrl = `https://${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
                 }
-                console.log(`[R2] Uploaded successfully: ${fileName}`);
+                console.log(`[Upload DEBUG] 5. R2 Success: ${fileName}`);
             } catch (r2Error) {
-                console.error('[R2] Upload failed, falling back to local file serving:', r2Error.message);
-                publicUrl = localPublicUrl;
+                console.error('[Upload DEBUG] R2 Error (falling back to local):', r2Error.message || r2Error);
+                // Fallback is already handled by publicUrl defaulting to localPublicUrl
             }
         } else {
-            console.warn('[R2] Missing configuration, falling back to local file serving');
-            publicUrl = localPublicUrl;
+            console.log('[Upload DEBUG] 4. R2 skipped (using local storage)');
         }
 
-        console.log(`[Upload] Completed. URL: ${publicUrl}`);
+
+
+        console.log(`[Upload] Success: ${fileName} -> ${publicUrl}`);
         res.json({ url: publicUrl });
+
     } catch (err) {
-        console.error('Error in upload process:', err);
-        // Attempt cleanup
-        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        console.error('[Upload] Critical Error:', err);
         res.status(500).json({ error: 'File processing failed', details: err.message });
     }
 });
+
+
 
 // ==========================================
 // SAVED ITEMS
