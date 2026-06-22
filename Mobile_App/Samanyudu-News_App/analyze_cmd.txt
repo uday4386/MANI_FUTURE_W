@@ -1,0 +1,484 @@
+Analyzing Samanyudu-News_App...                                 
+
+  error - Methods can't be invoked in constant expressions - lib\main.dart:59:28 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\main.dart:59:78 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\main.dart:69:28 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\main.dart:69:78 - unnecessary_const
+  error - Undefined name 'isDark' - lib\screens\about_screen.dart:9:31 - undefined_identifier
+  error - Undefined name 'context' - lib\screens\about_screen.dart:9:50 - undefined_identifier
+  error - Methods can't be invoked in constant expressions - lib\screens\about_screen.dart:9:98 - const_eval_method_invocation
+  error - Undefined name 'context' - lib\screens\about_screen.dart:9:107 - undefined_identifier
+   info - Unnecessary 'const' keyword - lib\screens\about_screen.dart:9:148 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\about_screen.dart:9:188 - record_literal_one_positional_no_trailing_comma
+  error - The method 'withOpacity' isn't defined for the type 'Object' - lib\screens\about_screen.dart:60:58 - undefined_method
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\about_screen.dart:62:53 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\about_screen.dart:77:26 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\alerts.dart:173:25 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\alerts.dart:173:82 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\alerts.dart:173:132 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\alerts.dart:173:172 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\alerts.dart:199:65 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\alerts.dart:199:96 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\alerts.dart:202:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\alerts.dart:203:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\alerts.dart:209:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\categories.dart:140:68 - deprecated_member_use
+warning - The value of the field 'bgColor' isn't used - lib\screens\category_detail_screen.dart:35:16 - unused_field
+warning - The value of the field 'cardColor' isn't used - lib\screens\category_detail_screen.dart:36:16 - unused_field
+warning - The value of the field 'iconBg' isn't used - lib\screens\category_detail_screen.dart:38:16 - unused_field
+warning - The value of the field 'accentYellow' isn't used - lib\screens\category_detail_screen.dart:39:16 - unused_field
+  error - Undefined name 'isDark' - lib\screens\category_detail_screen.dart:39:31 - undefined_identifier
+  error - The instance member 'context' can't be accessed in an initializer - lib\screens\category_detail_screen.dart:39:50 - implicit_this_reference_in_initializer
+  error - Methods can't be invoked in constant expressions - lib\screens\category_detail_screen.dart:39:98 - const_eval_method_invocation
+  error - The instance member 'context' can't be accessed in an initializer - lib\screens\category_detail_screen.dart:39:107 - implicit_this_reference_in_initializer
+   info - Unnecessary 'const' keyword - lib\screens\category_detail_screen.dart:39:148 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\category_detail_screen.dart:39:188 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\category_detail_screen.dart:275:93 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\category_detail_screen.dart:275:143 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\category_detail_screen.dart:275:183 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\category_detail_screen.dart:321:55 - argument_type_not_assignable
+  error - Invalid constant value - lib\screens\category_detail_screen.dart:351:74 - invalid_constant
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\category_detail_screen.dart:351:74 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\category_detail_screen.dart:457:54 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\category_detail_screen.dart:473:54 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\category_detail_screen.dart:514:24 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\category_detail_screen.dart:514:111 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\category_detail_screen.dart:514:161 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\category_detail_screen.dart:514:201 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\edit_profile_screen.dart:94:84 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\edit_profile_screen.dart:94:134 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\edit_profile_screen.dart:94:174 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\edit_profile_screen.dart:134:51 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\edit_profile_screen.dart:154:51 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\edit_profile_screen.dart:162:36 - argument_type_not_assignable
+   info - 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings - lib\screens\index.dart:403:11 - deprecated_member_use
+   info - 'timeLimit' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings - lib\screens\index.dart:404:11 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:487:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:488:24 - deprecated_member_use
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:491:92 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:491:193 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:491:200 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:491:250 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:491:290 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:491:326 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\index.dart:509:45 - argument_type_not_assignable
+warning - The declaration '_showSpeedMenu' isn't referenced - lib\screens\index.dart:619:8 - unused_element
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:654:38 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:655:85 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:655:186 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:655:193 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:655:243 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:655:283 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:655:319 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:737:93 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:737:194 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:737:201 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:737:251 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:737:291 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:737:327 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\index.dart:764:45 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:769:26 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:777:32 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:807:32 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:920:38 - argument_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:981:39 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:1067:29 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1067:86 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1067:187 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1067:194 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1067:244 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1067:284 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1067:320 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1071:90 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1071:191 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1071:198 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1071:248 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1071:288 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1071:324 - record_literal_one_positional_no_trailing_comma
+  error - The method 'withOpacity' isn't defined for the type 'Object' - lib\screens\index.dart:1071:344 - undefined_method
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:1093:37 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1093:94 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1093:195 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1093:202 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1093:252 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1093:292 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1093:328 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:1148:24 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1153:35 - const_eval_method_invocation
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:1153:35 - argument_type_not_assignable
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1153:136 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1153:193 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1153:233 - record_literal_one_positional_no_trailing_comma
+  error - The method 'withOpacity' isn't defined for the type 'Object' - lib\screens\index.dart:1260:56 - undefined_method
+  error - The method 'withOpacity' isn't defined for the type 'Object' - lib\screens\index.dart:1267:58 - undefined_method
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:1273:50 - argument_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:1633:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:1708:40 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:1992:24 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1994:91 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1994:192 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:1994:199 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:1994:249 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1994:289 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:1994:325 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\index.dart:2183:38 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:2185:95 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2185:196 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:2185:203 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2185:253 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:2185:293 - record_literal_one_positional_no_trailing_comma
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:2185:329 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:2207:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:2212:41 - deprecated_member_use
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:2220:49 - const_eval_method_invocation
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:2220:49 - argument_type_not_assignable
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2220:150 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2220:207 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:2220:247 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:2264:41 - deprecated_member_use
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:2273:47 - const_eval_method_invocation
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:2273:47 - argument_type_not_assignable
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2273:148 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2273:205 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:2273:245 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\index.dart:2281:47 - const_eval_method_invocation
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\index.dart:2281:47 - argument_type_not_assignable
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2281:148 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\screens\index.dart:2281:205 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\index.dart:2281:245 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\index.dart:2303:52 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\language_screen.dart:58:20 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\language_screen.dart:58:91 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\language_screen.dart:58:141 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\language_screen.dart:58:181 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\language_screen.dart:90:22 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\language_screen.dart:90:93 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\language_screen.dart:90:143 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\language_screen.dart:90:183 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\language_screen.dart:144:39 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\language_screen.dart:144:96 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\language_screen.dart:144:146 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\language_screen.dart:144:186 - record_literal_one_positional_no_trailing_comma
+warning - Unused import: 'package:translator/translator.dart' - lib\screens\location_screen.dart:8:8 - unused_import
+warning - Unused import: '../widgets/translated_text.dart' - lib\screens\location_screen.dart:9:8 - unused_import
+   info - 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings - lib\screens\location_screen.dart:124:9 - deprecated_member_use
+   info - 'timeLimit' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings - lib\screens\location_screen.dart:125:9 - deprecated_member_use
+warning - The '!' will have no effect because the receiver can't be null - lib\screens\location_screen.dart:195:39 - unnecessary_non_null_assertion
+warning - The operand can't be 'null', so the condition is always 'true' - lib\screens\location_screen.dart:201:31 - unnecessary_null_comparison
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\location_screen.dart:297:29 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\location_screen.dart:297:86 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\location_screen.dart:297:136 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\location_screen.dart:297:176 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\location_screen.dart:321:50 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\location_screen.dart:321:100 - unnecessary_const
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\location_screen.dart:347:17 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\location_screen.dart:399:17 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\location_screen.dart:448:17 - deprecated_member_use
+warning - The value of the local variable 'textColor' isn't used - lib\screens\location_screen.dart:522:11 - unused_local_variable
+warning - The value of the local variable 'hintColor' isn't used - lib\screens\location_screen.dart:523:11 - unused_local_variable
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:155:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:157:28 - use_build_context_synchronously
+warning - The value of the field '_verificationId' isn't used - lib\screens\login_screen.dart:165:11 - unused_field
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:198:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:233:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:266:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:272:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:296:34 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:302:32 - use_build_context_synchronously
+warning - The declaration '_handleFirebasePhoneSuccess' isn't referenced - lib\screens\login_screen.dart:312:16 - unused_element
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:346:28 - use_build_context_synchronously
+warning - The value of the local variable 'subTextColor' isn't used - lib\screens\login_screen.dart:373:19 - unused_local_variable
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:411:50 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:418:50 - use_build_context_synchronously
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\login_screen.dart:423:69 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\login_screen.dart:423:126 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\login_screen.dart:423:176 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\login_screen.dart:423:216 - record_literal_one_positional_no_trailing_comma
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:531:54 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_screen.dart:541:50 - use_build_context_synchronously
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\login_screen.dart:546:69 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\login_screen.dart:546:126 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\login_screen.dart:546:176 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\login_screen.dart:546:216 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\login_screen.dart:583:26 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\login_screen.dart:583:102 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\login_screen.dart:583:152 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\login_screen.dart:583:192 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\login_screen.dart:613:26 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\login_screen.dart:613:101 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\login_screen.dart:613:151 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\login_screen.dart:613:191 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\login_screen.dart:767:37 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\login_screen.dart:767:94 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\login_screen.dart:767:144 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\login_screen.dart:767:184 - record_literal_one_positional_no_trailing_comma
+warning - Unused import: '../widgets/ad_dialog.dart' - lib\screens\main_navigation.dart:10:8 - unused_import
+warning - The declaration '_fetchAds' isn't referenced - lib\screens\main_navigation.dart:58:16 - unused_element
+warning - The declaration '_setupAdTimers' isn't referenced - lib\screens\main_navigation.dart:74:8 - unused_element
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\main_navigation.dart:192:37 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\main_navigation.dart:192:94 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\main_navigation.dart:192:144 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\main_navigation.dart:192:184 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\onboarding_screen.dart:130:28 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\onboarding_screen.dart:131:85 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\onboarding_screen.dart:131:135 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\onboarding_screen.dart:131:175 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\onboarding_screen.dart:162:41 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\onboarding_screen.dart:162:98 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\onboarding_screen.dart:162:148 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\onboarding_screen.dart:162:188 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\post_news_screen.dart:151:87 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\post_news_screen.dart:151:137 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\post_news_screen.dart:151:177 - record_literal_one_positional_no_trailing_comma
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\post_news_screen.dart:286:17 - deprecated_member_use
+  error - Methods can't be invoked in constant expressions - lib\screens\post_news_screen.dart:340:33 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\post_news_screen.dart:340:83 - unnecessary_const
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\post_news_screen.dart:379:36 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\post_news_screen.dart:402:89 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\post_news_screen.dart:402:139 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\post_news_screen.dart:402:179 - record_literal_one_positional_no_trailing_comma
+  error - The method 'withOpacity' isn't defined for the type 'Object' - lib\screens\post_news_screen.dart:402:199 - undefined_method
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\post_news_screen.dart:405:20 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\post_news_screen.dart:406:75 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\post_news_screen.dart:406:125 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\post_news_screen.dart:406:165 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\post_news_screen.dart:416:24 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\post_news_screen.dart:416:95 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\post_news_screen.dart:416:145 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\post_news_screen.dart:416:185 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\post_news_screen.dart:423:26 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\post_news_screen.dart:423:97 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\post_news_screen.dart:423:147 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\post_news_screen.dart:423:187 - record_literal_one_positional_no_trailing_comma
+warning - The declaration '_buildCategoryButton' isn't referenced - lib\screens\post_news_screen.dart:435:10 - unused_element
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\post_news_screen.dart:441:9 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\post_news_screen.dart:441:80 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\post_news_screen.dart:441:130 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\post_news_screen.dart:441:170 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:165:40 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:165:97 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:165:147 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:165:187 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile.dart:179:73 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:209:21 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:210:35 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:210:92 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:210:142 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:210:182 - record_literal_one_positional_no_trailing_comma
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:211:21 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:218:21 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:219:35 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:219:92 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:219:142 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:219:182 - record_literal_one_positional_no_trailing_comma
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:220:21 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile.dart:229:75 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\screens\profile.dart:238:23 - use_build_context_synchronously
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:277:21 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:278:35 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:278:92 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:278:142 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:278:182 - record_literal_one_positional_no_trailing_comma
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:279:21 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:286:21 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:287:35 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:287:92 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:287:142 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:287:182 - record_literal_one_positional_no_trailing_comma
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile.dart:288:21 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile.dart:297:75 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\screens\profile.dart:307:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\profile.dart:413:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\profile.dart:420:7 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\profile.dart:445:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\profile.dart:459:10 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\profile.dart:466:7 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile.dart:480:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\profile.dart:485:80 - deprecated_member_use
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:525:110 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:525:160 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:525:200 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:560:34 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:812:20 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:812:143 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:812:193 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:812:233 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\profile.dart:820:20 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\profile.dart:820:145 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\profile.dart:820:195 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\profile.dart:820:235 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\saved_items_screen.dart:84:24 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\saved_items_screen.dart:84:81 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\saved_items_screen.dart:84:131 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\saved_items_screen.dart:84:171 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\saved_items_screen.dart:86:28 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\saved_items_screen.dart:86:85 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\saved_items_screen.dart:86:135 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\saved_items_screen.dart:86:175 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\screens\saved_items_screen.dart:94:67 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\saved_items_screen.dart:94:117 - unnecessary_const
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\saved_items_screen.dart:140:85 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\saved_items_screen.dart:243:83 - deprecated_member_use
+warning - The declaration '_views' isn't referenced - lib\screens\saved_shorts_player.dart:162:10 - unused_element
+  error - Undefined name 'isDark' - lib\screens\saved_shorts_player.dart:175:26 - undefined_identifier
+  error - Methods can't be invoked in constant expressions - lib\screens\saved_shorts_player.dart:175:93 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\saved_shorts_player.dart:175:143 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\saved_shorts_player.dart:175:183 - record_literal_one_positional_no_trailing_comma
+  error - Invalid constant value - lib\screens\saved_shorts_player.dart:259:44 - invalid_constant
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\saved_shorts_player.dart:259:44 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\saved_shorts_player.dart:268:64 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\saved_shorts_player.dart:268:114 - unnecessary_const
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\saved_shorts_player.dart:289:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\saved_shorts_player.dart:401:35 - deprecated_member_use
+  error - Methods can't be invoked in constant expressions - lib\screens\search_screen.dart:171:87 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\search_screen.dart:171:137 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\search_screen.dart:171:177 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\search_screen.dart:242:28 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\search_screen.dart:267:46 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\search_screen.dart:303:28 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\search_screen.dart:310:66 - argument_type_not_assignable
+   info - Don't use 'BuildContext's across async gaps - lib\screens\signup_screen.dart:135:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\signup_screen.dart:185:28 - use_build_context_synchronously
+warning - The value of the field '_verificationId' isn't used - lib\screens\signup_screen.dart:193:11 - unused_field
+   info - Don't use 'BuildContext's across async gaps - lib\screens\signup_screen.dart:222:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\signup_screen.dart:230:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\signup_screen.dart:277:28 - use_build_context_synchronously
+warning - The declaration '_handleFirebasePhoneSuccess' isn't referenced - lib\screens\signup_screen.dart:285:16 - unused_element
+   info - Don't use 'BuildContext's across async gaps - lib\screens\signup_screen.dart:322:28 - use_build_context_synchronously
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:348:26 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:348:103 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:348:153 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:348:193 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:375:26 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:375:102 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:375:152 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:375:192 - record_literal_one_positional_no_trailing_comma
+warning - The value of the local variable 'fieldColor' isn't used - lib\screens\signup_screen.dart:400:11 - unused_local_variable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:507:39 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:507:96 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:507:146 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:507:186 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:533:39 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:533:96 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:533:146 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:533:186 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:568:31 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:568:154 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:568:204 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:568:244 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:572:38 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:572:163 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:572:213 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:572:253 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:576:54 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:576:179 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:576:229 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:576:269 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\signup_screen.dart:579:89 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\signup_screen.dart:579:214 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\signup_screen.dart:579:264 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\signup_screen.dart:579:304 - record_literal_one_positional_no_trailing_comma
+warning - The value of the local variable 'userDistrict' isn't used - lib\screens\splash_screen.dart:31:11 - unused_local_variable
+   info - Unnecessary 'const' keyword - lib\screens\splash_screen.dart:93:13 - unnecessary_const
+warning - The declaration '_saveCount' isn't referenced - lib\screens\videos.dart:37:7 - unused_element
+warning - The operand can't be 'null', so the condition is always 'true' - lib\screens\videos.dart:341:21 - unnecessary_null_comparison
+warning - The operand can't be 'null', so the condition is always 'false' - lib\screens\videos.dart:346:13 - unnecessary_null_comparison
+warning - The declaration '_caption' isn't referenced - lib\screens\videos.dart:421:10 - unused_element
+warning - The declaration '_views' isn't referenced - lib\screens\videos.dart:424:10 - unused_element
+  error - Methods can't be invoked in constant expressions - lib\screens\videos.dart:438:93 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\videos.dart:438:143 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\videos.dart:438:183 - record_literal_one_positional_no_trailing_comma
+warning - The value of the local variable 'textColor' isn't used - lib\screens\videos.dart:442:11 - unused_local_variable
+  error - Invalid constant value - lib\screens\videos.dart:449:66 - invalid_constant
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\videos.dart:449:66 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\videos.dart:539:44 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\videos.dart:551:35 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\videos.dart:551:85 - unnecessary_const
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\videos.dart:678:38 - argument_type_not_assignable
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\screens\videos.dart:766:24 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\videos.dart:766:91 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\videos.dart:766:141 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\videos.dart:766:181 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\screens\videos.dart:780:22 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\screens\videos.dart:780:89 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\screens\videos.dart:780:139 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\screens\videos.dart:780:179 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\videos.dart:854:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\videos.dart:865:46 - deprecated_member_use
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:163:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:170:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:171:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:181:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:384:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\api_service.dart:392:9 - avoid_print
+warning - The declaration '_showNotification' isn't referenced - lib\services\notification_service.dart:58:8 - unused_element
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\services\notification_service.dart:72:23 - argument_type_not_assignable
+  error - Undefined name 'context' - lib\services\notification_service.dart:72:32 - undefined_identifier
+  error - Methods can't be invoked in constant expressions - lib\services\notification_service.dart:72:80 - const_eval_method_invocation
+  error - Undefined name 'context' - lib\services\notification_service.dart:72:89 - undefined_identifier
+   info - Unnecessary 'const' keyword - lib\services\notification_service.dart:72:130 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\services\notification_service.dart:72:170 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\services\share_service.dart:40:77 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\services\share_service.dart:40:127 - unnecessary_const
+   info - Don't use 'BuildContext's across async gaps - lib\services\share_service.dart:58:80 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\services\share_service.dart:85:9 - use_build_context_synchronously
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\services\share_service.dart:211:35 - argument_type_not_assignable
+  error - Undefined name 'context' - lib\services\share_service.dart:211:44 - undefined_identifier
+  error - Methods can't be invoked in constant expressions - lib\services\share_service.dart:211:92 - const_eval_method_invocation
+  error - Undefined name 'context' - lib\services\share_service.dart:211:101 - undefined_identifier
+   info - Unnecessary 'const' keyword - lib\services\share_service.dart:211:142 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\services\share_service.dart:211:182 - record_literal_one_positional_no_trailing_comma
+   info - 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead - lib\services\speech_service_web.dart:2:1 - deprecated_member_use
+   info - Don't use web-only libraries outside Flutter web plugins - lib\services\speech_service_web.dart:2:1 - avoid_web_libraries_in_flutter
+warning - The operand can't be 'null', so the condition is always 'false' - lib\widgets\ad_dialog.dart:56:18 - unnecessary_null_comparison
+warning - Dead code - lib\widgets\ad_dialog.dart:56:27 - dead_code
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\ad_dialog.dart:117:37 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\widgets\news_detail_modal.dart:161:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\widgets\news_detail_modal.dart:180:33 - use_build_context_synchronously
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\widgets\news_detail_modal.dart:263:39 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:263:96 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:263:146 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:263:186 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\news_detail_modal.dart:264:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\news_detail_modal.dart:264:95 - deprecated_member_use
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\widgets\news_detail_modal.dart:268:34 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:268:105 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:268:155 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:268:195 - record_literal_one_positional_no_trailing_comma
+   info - Don't use 'BuildContext's across async gaps - lib\widgets\news_detail_modal.dart:341:30 - use_build_context_synchronously
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color?'.  - lib\widgets\news_detail_modal.dart:426:24 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:426:111 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:426:161 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:426:201 - record_literal_one_positional_no_trailing_comma
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\news_detail_modal.dart:537:71 - deprecated_member_use
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:550:90 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:550:140 - unnecessary_const
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\widgets\news_detail_modal.dart:614:43 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:614:100 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:614:150 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:614:190 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\widgets\news_detail_modal.dart:636:43 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:636:100 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:636:150 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:636:190 - record_literal_one_positional_no_trailing_comma
+  error - The argument type 'Object' can't be assigned to the parameter type 'Color'.  - lib\widgets\news_detail_modal.dart:643:43 - argument_type_not_assignable
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:643:100 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:643:150 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:643:190 - record_literal_one_positional_no_trailing_comma
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:661:104 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:661:154 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:661:194 - record_literal_one_positional_no_trailing_comma
+  error - The method 'withOpacity' isn't defined for the type 'Object' - lib\widgets\news_detail_modal.dart:661:214 - undefined_method
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:663:123 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:663:173 - unnecessary_const
+  error - A record literal with exactly one positional field requires a trailing comma - lib\widgets\news_detail_modal.dart:663:213 - record_literal_one_positional_no_trailing_comma
+  error - The method 'withOpacity' isn't defined for the type 'Object' - lib\widgets\news_detail_modal.dart:663:233 - undefined_method
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:668:49 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:668:99 - unnecessary_const
+  error - Methods can't be invoked in constant expressions - lib\widgets\news_detail_modal.dart:701:47 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\news_detail_modal.dart:701:97 - unnecessary_const
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\widgets\news_detail_modal.dart:719:64 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\widgets\shorts_comments_modal.dart:97:28 - use_build_context_synchronously
+  error - Methods can't be invoked in constant expressions - lib\widgets\shorts_comments_modal.dart:203:62 - const_eval_method_invocation
+   info - Unnecessary 'const' keyword - lib\widgets\shorts_comments_modal.dart:203:112 - unnecessary_const
+
