@@ -18,7 +18,8 @@ class VideosPage extends StatefulWidget {
 
 class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
   late PageController _pageController;
-  VideoPlayerController? _controller;
+  final Map<int, VideoPlayerController> _controllers = {};
+  final Set<int> _initializedSet = {};
   int _currentPageIndex = 0;
   bool isMuted = false;
   bool _loadError = false;
@@ -79,7 +80,7 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
         _isActiveTab = true;
       });
       _pageController.jumpToPage(index);
-      _initializeVideoForIndex(index);
+      _preloadAround(index);
     }
   }
 
@@ -129,7 +130,7 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
           jumpToShort(_pendingShortId!);
           _pendingShortId = null;
         } else if (_mixedShorts.isNotEmpty) {
-          _initializeVideoForIndex(0);
+          _preloadAround(0);
         }
       }
     } catch (e) {
@@ -185,33 +186,36 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controllers[_currentPageIndex];
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      if (_controller != null && _controller!.value.isPlaying) {
-        _controller!.pause();
+      if (controller != null && controller.value.isPlaying) {
+        controller.pause();
       }
     } else if (state == AppLifecycleState.resumed) {
       if (_isActiveTab &&
-          _controller != null &&
-          !_controller!.value.isPlaying &&
+          controller != null &&
+          !controller.value.isPlaying &&
           !_userPaused) {
-        _controller!.play();
+        controller.play();
       }
     }
   }
 
   void onTabActive() {
     _isActiveTab = true;
-    if (_controller != null && !_controller!.value.isPlaying && !_userPaused) {
-      _controller!.play();
+    final controller = _controllers[_currentPageIndex];
+    if (controller != null && !controller.value.isPlaying && !_userPaused) {
+      controller.play();
       setState(() {});
     }
   }
 
   void onTabInactive() {
     _isActiveTab = false;
-    if (_controller != null && _controller!.value.isPlaying) {
-      _controller!.pause();
+    final controller = _controllers[_currentPageIndex];
+    if (controller != null && controller.value.isPlaying) {
+      controller.pause();
       setState(() {});
     }
   }
@@ -329,86 +333,102 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _initializeVideoForIndex(int index) async {
-    if (index < 0 || index >= _mixedShorts.length) return;
-    await _controller?.dispose();
-    _controller = null;
-    
-    final item = _mixedShorts[index];
-    final isAd = item['feed_type'] == 'ad';
-    final rawUrl = isAd ? item['media_url'] : item['video_url'];
-    final url = ApiService.normalizeUrl(rawUrl);
-
-    // For ads, if it's not a video, don't try to initialize video player
-    if (isAd && url != null && !(url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.webm') || url.toLowerCase().endsWith('.ogg'))) {
-       if (mounted) setState(() => _loadError = false); // Just show as image via build logic
-       return; 
+  Future<void> _preloadAround(int index) async {
+    // Dispose controllers that are far away (more than 2 pages away)
+    final toRemove = <int>[];
+    for (final key in _controllers.keys) {
+      if ((key - index).abs() > 2) {
+        toRemove.add(key);
+      }
+    }
+    for (final key in toRemove) {
+      _controllers[key]?.dispose();
+      _controllers.remove(key);
+      _initializedSet.remove(key);
     }
 
-    if (url == null || url.toString().isEmpty) {
-      if (mounted) setState(() => _loadError = true);
-      return;
-    }
+    for (int i = index - 1; i <= index + 1; i++) {
+      if (i < 0 || i >= _mixedShorts.length) continue;
+      if (_controllers.containsKey(i)) continue;
 
-    if (mounted) {
-      setState(() {
-        _loadError = false;
-        _userPaused = false;
+      final item = _mixedShorts[i];
+      final isAd = item['feed_type'] == 'ad';
+      final rawUrl = isAd ? item['media_url'] : item['video_url'];
+      final url = ApiService.normalizeUrl(rawUrl);
+
+      // For ads, if it's not a video, don't try to initialize video player
+      if (isAd && url != null && !(url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.webm') || url.toLowerCase().endsWith('.ogg'))) {
+         continue; 
+      }
+
+      if (url == null || url.toString().isEmpty) {
+        continue;
+      }
+
+      final newController = VideoPlayerController.networkUrl(Uri.parse(url));
+      _controllers[i] = newController;
+
+      newController.initialize().then((_) {
+        if (!mounted) {
+          newController.dispose();
+          _controllers.remove(i);
+          return;
+        }
+        _initializedSet.add(i);
+        newController.setLooping(true);
+        newController.setVolume(isAd ? 1.0 : (isMuted ? 0.0 : 1.0));
+
+        if (i == _currentPageIndex && _isActiveTab && !_userPaused) {
+          newController.play();
+        }
+        
+        // Track view if it's the current page and playing
+        if (i == _currentPageIndex) {
+          final id = item['id'].toString();
+          if (item['feed_type'] == 'short' && id.isNotEmpty && !_viewedIds.contains(id)) {
+            _viewedIds.add(id);
+            setState(() {
+              int currentViews = int.tryParse(item['views']?.toString() ?? '0') ?? 0;
+              item['views'] = currentViews + 1;
+            });
+            ApiService.viewShort(id).catchError((e) => debugPrint("Error: $e"));
+          }
+        }
+        
+        setState(() {});
+      }).catchError((Object e) {
+        if (!mounted) return;
+        newController.dispose();
+        _controllers.remove(i);
+        _initializedSet.remove(i);
+        if (i == _currentPageIndex) setState(() => _loadError = true);
       });
     }
-
-    // Increment view count dynamically if we haven't viewed it this session
-    final id = item['id'].toString();
-    if (item['feed_type'] == 'short' && id.isNotEmpty && !_viewedIds.contains(id)) {
-      _viewedIds.add(id);
-
-      // Speculatively update local UI
-      if (mounted) {
-        setState(() {
-          int currentViews =
-              int.tryParse(item['views']?.toString() ?? '0') ?? 0;
-          item['views'] = currentViews + 1;
-        });
-      }
-
-      // Update Database
-      try {
-        await ApiService.viewShort(id);
-      } catch (e) {
-        debugPrint("Error incrementing short views: $e");
-      }
-    }
-    final newController = VideoPlayerController.networkUrl(Uri.parse(url));
-
-    newController
-        .initialize()
-        .then((_) {
-          if (!mounted) {
-            newController.dispose();
-            return;
-          }
-          _controller = newController;
-          final isAd = _mixedShorts[index]['feed_type'] == 'ad';
-          _controller!
-            ..setLooping(true)
-            ..setVolume(isAd ? 1.0 : (isMuted ? 0.0 : 1.0));
-
-          if (_isActiveTab && !_userPaused) {
-            _controller!.play();
-          }
-          setState(() => _loadError = false);
-        })
-        .catchError((Object e) {
-          if (!mounted) return;
-          newController.dispose();
-          setState(() => _loadError = true);
-        });
   }
 
   void _onPageChanged(int index) {
     if (index == _currentPageIndex) return;
-    setState(() => _currentPageIndex = index);
-    _initializeVideoForIndex(index);
+    
+    // Pause old controller
+    final oldController = _controllers[_currentPageIndex];
+    oldController?.pause();
+    
+    setState(() {
+      _currentPageIndex = index;
+      _loadError = false;
+      _userPaused = false;
+    });
+    
+    // Play new controller if ready
+    final newController = _controllers[index];
+    if (newController != null && _initializedSet.contains(index)) {
+      newController.seekTo(Duration.zero);
+      if (_isActiveTab && !_userPaused) {
+        newController.play();
+      }
+    }
+    
+    _preloadAround(index);
   }
 
   @override
@@ -416,7 +436,10 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     // _realtimeSubscription?.unsubscribe();
     _pageController.dispose();
-    _controller?.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    _controllers.clear();
     super.dispose();
   }
 
@@ -458,11 +481,9 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
                 final item = _mixedShorts[index];
                 final isAd = item['feed_type'] == 'ad';
                 final isActive = index == _currentPageIndex;
-                final showVideo =
-                    isActive &&
-                    _controller != null &&
-                    _controller!.value.isInitialized &&
-                    !_loadError;
+                final controller = _controllers[index];
+                final isReady = controller != null && _initializedSet.contains(index);
+                final showVideo = isReady && !(_loadError && isActive);
                 final showError = isActive && _loadError;
 
                 return Stack(
@@ -472,13 +493,14 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
                     if (showVideo)
                       GestureDetector(
                         onTap: () {
+                          if (controller == null) return;
                           setState(() {
-                            if (_controller!.value.isPlaying) {
-                              _controller!.pause();
-                              _userPaused = true;
+                            if (controller.value.isPlaying) {
+                              controller.pause();
+                              if (isActive) _userPaused = true;
                             } else {
-                              _controller!.play();
-                              _userPaused = false;
+                              controller.play();
+                              if (isActive) _userPaused = false;
                             }
                           });
                         },
@@ -488,13 +510,13 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
                               child: FittedBox(
                                 fit: BoxFit.cover,
                                 child: SizedBox(
-                                  width: _controller!.value.size.width,
-                                  height: _controller!.value.size.height,
-                                  child: VideoPlayer(_controller!),
+                                  width: controller!.value.size.width,
+                                  height: controller.value.size.height,
+                                  child: VideoPlayer(controller),
                                 ),
                               ),
                             ),
-                            if (!_controller!.value.isPlaying)
+                            if (!controller.value.isPlaying)
                               Center(
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
@@ -514,7 +536,10 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
                       )
                     else if (showError)
                       GestureDetector(
-                        onTap: () => _initializeVideoForIndex(index),
+                        onTap: () {
+                          setState(() => _loadError = false);
+                          _preloadAround(index);
+                        },
                         child: Container(
                           color: bgColor,
                           child: Center(
@@ -637,7 +662,9 @@ class VideosPageState extends State<VideosPage> with WidgetsBindingObserver {
                               scale: scale,
                               onTap: () {
                                 setState(() => isMuted = !isMuted);
-                                _controller?.setVolume(isMuted ? 0 : 1);
+                                for (final c in _controllers.values) {
+                                  c.setVolume(isMuted ? 0 : 1);
+                                }
                                 _showSnack(
                                   isMuted ? _text["muted"]! : _text["soundOn"]!,
                                 );

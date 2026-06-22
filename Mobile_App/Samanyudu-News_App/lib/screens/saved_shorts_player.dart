@@ -23,7 +23,8 @@ class SavedShortsPlayer extends StatefulWidget {
 
 class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindingObserver {
   late PageController _pageController;
-  VideoPlayerController? _controller;
+  final Map<int, VideoPlayerController> _controllers = {};
+  final Set<int> _initializedSet = {};
   late int _currentPageIndex;
   bool isMuted = false;
   bool _loadError = false;
@@ -44,19 +45,20 @@ class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindi
     _pageController = PageController(initialPage: widget.initialIndex);
     _loadLanguageText();
     _loadSavedIds();
-    _initializeVideoForIndex(_currentPageIndex);
+    _preloadAround(_currentPageIndex);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controllers[_currentPageIndex];
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      if (_controller != null && _controller!.value.isPlaying) {
-        _controller!.pause();
+      if (controller != null && controller.value.isPlaying) {
+        controller.pause();
         setState(() {});
       }
     } else if (state == AppLifecycleState.resumed) {
-      if (_controller != null && !_controller!.value.isPlaying) {
-        _controller!.play();
+      if (controller != null && !controller.value.isPlaying) {
+        controller.play();
         setState(() {});
       }
     }
@@ -117,44 +119,81 @@ class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindi
     await prefs.setStringList('saved_shorts_ids', _savedIds.toList());
   }
 
-  Future<void> _initializeVideoForIndex(int index) async {
-    if (index < 0 || index >= widget.shorts.length) return;
-    await _controller?.dispose();
-    _controller = null;
-    if (mounted) setState(() => _loadError = false);
-
-    final url = ApiService.normalizeUrl(widget.shorts[index]['video_url']);
-    final newController = VideoPlayerController.networkUrl(Uri.parse(url));
-
-    newController.initialize().then((_) {
-      if (!mounted) {
-        newController.dispose();
-        return;
+  Future<void> _preloadAround(int index) async {
+    final toRemove = <int>[];
+    for (final key in _controllers.keys) {
+      if ((key - index).abs() > 2) {
+        toRemove.add(key);
       }
-      _controller = newController;
-      _controller!
-        ..setLooping(true)
-        ..setVolume(isMuted ? 0 : 1)
-        ..play();
-      setState(() => _loadError = false);
-    }).catchError((Object e) {
-      if (!mounted) return;
-      newController.dispose();
-      setState(() => _loadError = true);
-    });
+    }
+    for (final key in toRemove) {
+      _controllers[key]?.dispose();
+      _controllers.remove(key);
+      _initializedSet.remove(key);
+    }
+
+    for (int i = index - 1; i <= index + 1; i++) {
+      if (i < 0 || i >= widget.shorts.length) continue;
+      if (_controllers.containsKey(i)) continue;
+
+      final url = ApiService.normalizeUrl(widget.shorts[i]['video_url']);
+      if (url == null || url.isEmpty) continue;
+
+      final newController = VideoPlayerController.networkUrl(Uri.parse(url));
+      _controllers[i] = newController;
+
+      newController.initialize().then((_) {
+        if (!mounted) {
+          newController.dispose();
+          _controllers.remove(i);
+          return;
+        }
+        _initializedSet.add(i);
+        newController.setLooping(true);
+        newController.setVolume(isMuted ? 0 : 1);
+
+        if (i == _currentPageIndex) {
+          newController.play();
+        }
+        setState(() {});
+      }).catchError((Object e) {
+        if (!mounted) return;
+        newController.dispose();
+        _controllers.remove(i);
+        _initializedSet.remove(i);
+        if (i == _currentPageIndex) setState(() => _loadError = true);
+      });
+    }
   }
 
   void _onPageChanged(int index) {
     if (index == _currentPageIndex) return;
-    setState(() => _currentPageIndex = index);
-    _initializeVideoForIndex(index);
+    
+    final oldController = _controllers[_currentPageIndex];
+    oldController?.pause();
+    
+    setState(() {
+      _currentPageIndex = index;
+      _loadError = false;
+    });
+    
+    final newController = _controllers[index];
+    if (newController != null && _initializedSet.contains(index)) {
+      newController.seekTo(Duration.zero);
+      newController.play();
+    }
+    
+    _preloadAround(index);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
-    _controller?.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    _controllers.clear();
     super.dispose();
   }
 
@@ -189,10 +228,9 @@ class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindi
             onPageChanged: _onPageChanged,
             itemBuilder: (context, index) {
               final isActive = index == _currentPageIndex;
-              final showVideo = isActive &&
-                  _controller != null &&
-                  _controller!.value.isInitialized &&
-                  !_loadError;
+              final controller = _controllers[index];
+              final isReady = controller != null && _initializedSet.contains(index);
+              final showVideo = isReady && !(_loadError && isActive);
               final showError = isActive && _loadError;
     
               return Stack(
@@ -202,11 +240,12 @@ class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindi
                   if (showVideo)
                     GestureDetector(
                       onTap: () {
+                        if (controller == null) return;
                         setState(() {
-                          if (_controller!.value.isPlaying) {
-                            _controller!.pause();
+                          if (controller.value.isPlaying) {
+                            controller.pause();
                           } else {
-                            _controller!.play();
+                            controller.play();
                           }
                         });
                       },
@@ -216,13 +255,13 @@ class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindi
                             child: FittedBox(
                               fit: BoxFit.cover,
                               child: SizedBox(
-                                width: _controller!.value.size.width,
-                                height: _controller!.value.size.height,
-                                child: VideoPlayer(_controller!),
+                                width: controller.value.size.width,
+                                height: controller.value.size.height,
+                                child: VideoPlayer(controller),
                               ),
                             ),
                           ),
-                          if (!_controller!.value.isPlaying)
+                          if (!controller.value.isPlaying)
                             Center(
                               child: Container(
                                 padding: const EdgeInsets.all(20),
@@ -238,7 +277,10 @@ class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindi
                     )
                   else if (showError)
                     GestureDetector(
-                      onTap: () => _initializeVideoForIndex(index),
+                      onTap: () {
+                        setState(() => _loadError = false);
+                        _preloadAround(index);
+                      },
                       child: Container(
                         color: bgColor,
                         child: Center(
@@ -337,7 +379,9 @@ class _SavedShortsPlayerState extends State<SavedShortsPlayer> with WidgetsBindi
                           scale: scale,
                           onTap: () {
                             setState(() => isMuted = !isMuted);
-                            _controller?.setVolume(isMuted ? 0 : 1);
+                            for (final c in _controllers.values) {
+                              c.setVolume(isMuted ? 0 : 1);
+                            }
                           },
                         ),
                       ],
