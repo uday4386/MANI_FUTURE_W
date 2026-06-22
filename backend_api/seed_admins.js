@@ -2,14 +2,15 @@ const db = require('./db');
 
 async function seedSuperAdmins() {
     const superAdmins = [
-        { email: 'admin1@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 1', role: 'super_admin' },
-        { email: 'admin2@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 2', role: 'super_admin' },
-        { email: 'admin3@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 3', role: 'super_admin' },
-        { email: 'admin4@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 4', role: 'super_admin' }
+        { email: 'ydrkrishna@gmail.com', password: 'Samanyudu@2026$', name: 'Krishna YDR', role: 'super_admin' },
+        { email: 'madubabu529@gmail.com', password: 'Samanyudu@2026$', name: 'Madubabu', role: 'super_admin' },
+        { email: 'samanyudutv@gmail.com', password: 'Samanyudu@2026$', name: 'Samanyudu TV', role: 'super_admin' },
+        { email: 'samanyuduguntur@gmail.com', password: 'Samanyudu@2026$', name: 'Samanyudu Guntur', role: 'super_admin' },
+        { email: 'syncai@gmail.com', password: 'Samanyudu@2026$', name: 'Sync AI', role: 'super_admin' }
     ];
 
     try {
-        console.log('Seeding super admins...');
+        console.log('Seeding requested super admins...');
         for (const admin of superAdmins) {
             await db.query(`
                 INSERT INTO admin_users (email, password, name, role)
@@ -22,6 +23,8 @@ async function seedSuperAdmins() {
         console.log('Super admins seeding complete.');
     } catch (error) {
         console.error('Error seeding super admins:', error);
+    } finally {
+        process.exit(0);
     }
 }
 

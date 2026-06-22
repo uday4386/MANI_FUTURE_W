@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert,
+import {
+  ShieldAlert,
   Cast, Globe, Radio,
   LayoutDashboard,
   Newspaper,
@@ -413,26 +414,28 @@ const SettingsView = ({ user }: { user: any }) => {
               </label>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
-                  <Smartphone size={20} />
+            {user?.role !== 'sub_admin' && (
+              <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-500">
+                    <Smartphone size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">App Maintenance Mode</p>
+                    <p className="text-xs text-slate-400">Show maintenance screen to users</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-white">App Maintenance Mode</p>
-                  <p className="text-xs text-slate-400">Show maintenance screen to users</p>
-                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={maintenanceEnabled}
+                    onChange={(e) => setMaintenanceEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                </label>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={maintenanceEnabled}
-                  onChange={(e) => setMaintenanceEnabled(e.target.checked)}
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-              </label>
-            </div>
+            )}
           </div>
 
           <div className="pt-4 flex justify-end">
@@ -660,50 +663,50 @@ const SuperAdminsManager = ({ adminEmail }: { adminEmail: string }) => {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl w-[700px] h-[700px] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
-              <h3 className="text-xl font-bold text-white">{editingAdmin ? 'Edit Super Admin' : 'New Super Admin'}</h3>
-              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <h3 className="text-2xl font-bold text-white">{editingAdmin ? 'Edit Super Admin' : 'New Super Admin'}</h3>
+              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
             </div>
-            <div className="p-6 overflow-y-auto">
-              <form id="adminForm" onSubmit={handleSubmit} className="space-y-4">
+            <div className="p-8 overflow-y-auto flex-1 flex flex-col justify-center">
+              <form id="adminForm" onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Full Name</label>
-                  <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 outline-none transition-all" placeholder="Enter full name" />
+                  <label className="block text-lg font-bold text-slate-300 mb-2 tracking-wide">Full Name</label>
+                  <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-red-500/30 focus:border-red-500 outline-none transition-all placeholder-slate-500" placeholder="Enter full name" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Email Address</label>
-                  <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 outline-none transition-all" placeholder="Enter email address" />
+                  <label className="block text-lg font-bold text-slate-300 mb-2 tracking-wide">Email Address</label>
+                  <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-red-500/30 focus:border-red-500 outline-none transition-all placeholder-slate-500" placeholder="Enter email address" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Password</label>
-                  <input required={!editingAdmin} type="text" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 outline-none transition-all" placeholder={editingAdmin ? "Leave blank to keep unchanged" : "Enter password"} />
+                  <label className="block text-lg font-bold text-slate-300 mb-2 tracking-wide">Password</label>
+                  <input required={!editingAdmin} type="text" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-red-500/30 focus:border-red-500 outline-none transition-all placeholder-slate-500" placeholder={editingAdmin ? "Leave blank to keep unchanged" : "Enter password"} />
                 </div>
               </form>
             </div>
-            <div className="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-slate-300 hover:text-white font-medium">Cancel</button>
-              <button type="submit" form="adminForm" className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-lg shadow-red-900/20">Save Super Admin</button>
+            <div className="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-end gap-4 mt-auto">
+              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 text-lg text-slate-300 hover:text-white font-medium">Cancel</button>
+              <button type="submit" form="adminForm" className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-lg font-bold shadow-lg shadow-red-900/20 whitespace-nowrap">Save Super Admin</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {admins.map(admin => (
-          <div key={admin.id} className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5 hover:bg-slate-800/50 transition-colors">
+          <div key={admin.id} className="bg-slate-800 border border-slate-700/50 rounded-xl p-4 shadow-lg flex flex-col overflow-hidden hover:bg-slate-800/80 transition-colors">
             <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center font-bold text-lg border border-red-500/30">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center font-bold text-lg border border-red-500/30">
                   {admin.name?.charAt(0) || 'A'}
                 </div>
-                <div>
-                  <h4 className="text-white font-bold">{admin.name}</h4>
-                  <div className="text-sm text-slate-400 font-mono mt-0.5">{admin.email}</div>
+                <div className="min-w-0">
+                  <h4 className="text-white font-bold text-lg leading-tight truncate">{admin.name}</h4>
+                  <div className="text-xs text-red-300/70 font-mono mt-0.5 truncate">{admin.email}</div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setEditingAdmin(admin); setFormData({ name: admin.name || '', email: admin.email, password: admin.password }); setShowForm(true); }} className="p-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors" title="Edit">
+              <div className="flex gap-2 shrink-0 ml-2">
+                <button onClick={() => { setEditingAdmin(admin); setFormData({ name: admin.name || '', email: admin.email, password: admin.password }); setShowForm(true); }} className="p-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg text-blue-400 hover:text-blue-300 transition-colors" title="Edit">
                   <Edit className="w-4 h-4" />
                 </button>
                 {admin.email !== 'syncai@gmail.com' && (
@@ -713,14 +716,20 @@ const SuperAdminsManager = ({ adminEmail }: { adminEmail: string }) => {
                 )}
               </div>
             </div>
-            <div className="bg-slate-900/50 rounded-lg p-3 text-sm flex justify-between items-center border border-slate-800/50">
-              <div className="text-slate-400">Password:</div>
-              <div className="font-mono text-slate-300 select-all">{admin.password}</div>
+
+            <div className="space-y-2 mt-auto">
+              {/* Password Block */}
+              <div className="bg-slate-900/80 rounded-lg p-3 flex justify-between items-center border border-slate-700/50">
+                <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider shrink-0 mr-3">Password</div>
+                <div className="font-mono text-emerald-400 text-sm select-all truncate text-right font-medium" title={admin.password}>{admin.password}</div>
+              </div>
             </div>
           </div>
         ))}
         {admins.length === 0 && !loading && (
-          <div className="col-span-full p-8 text-center text-slate-500 bg-slate-800/20 rounded-xl border border-slate-700/30">No super admins found.</div>
+          <div className="col-span-full p-12 text-center text-slate-400 bg-slate-800 rounded-xl border border-slate-600 flex flex-col items-center justify-center">
+            <div className="text-lg font-medium">No super admins found.</div>
+          </div>
         )}
       </div>
     </div>
@@ -804,120 +813,142 @@ const ReportersManager = () => {
       </div>
 
       {showForm && (
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Reporter Name</label>
-              <input
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white"
-                required
-              />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
+              <h3 className="text-2xl font-bold text-white">{editingReporter ? 'Edit Reporter' : 'New Reporter'}</h3>
+              <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white"><X className="w-6 h-6" /></button>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Email Address</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white"
-                required
-              />
+            <div className="p-8 overflow-y-auto flex-1">
+              <form id="reporterForm" onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-lg font-bold text-slate-300 tracking-wide">Full Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder-slate-500"
+                    placeholder="Enter full name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-lg font-bold text-slate-300 tracking-wide">Email Address</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder-slate-500"
+                    placeholder="Enter email address"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-lg font-bold text-slate-300 tracking-wide">Password</label>
+                  <input
+                    type="text"
+                    value={formData.password}
+                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder-slate-500"
+                    placeholder={editingReporter ? "Leave blank to keep unchanged" : "Enter password"}
+                    required={!editingReporter}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-lg font-bold text-slate-300 tracking-wide">State</label>
+                  <select
+                    value={formData.state}
+                    onChange={e => setFormData({ ...formData, state: e.target.value, district: '' })}
+                    className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all appearance-none"
+                  >
+                    <option value="Andhra Pradesh">Andhra Pradesh</option>
+                    <option value="Telangana">Telangana</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-lg font-bold text-slate-300 tracking-wide">District Assignment</label>
+                  <select
+                    value={formData.district}
+                    onChange={e => setFormData({ ...formData, district: e.target.value })}
+                    className="w-full bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-4 text-white text-lg font-medium focus:ring-4 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all appearance-none"
+                    required
+                  >
+                    <option value="">Select District</option>
+                    {(formData.state === 'Andhra Pradesh' ? [
+                      'Anantapur', 'Chittoor', 'East Godavari', 'Guntur', 'Kadapa', 'Krishna', 'Kurnool', 'Nellore', 'Prakasam', 'Srikakulam', 'Visakhapatnam', 'Vizianagaram', 'West Godavari'
+                    ] : [
+                      'Adilabad', 'Bhadradri Kothagudem', 'Hyderabad', 'Jagtial', 'Jangaon', 'Jayashankar Bhupalpally', 'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar', 'Khammam', 'Kumuram Bheem Asifabad', 'Mahabubabad', 'Mahabubnagar', 'Mancherial', 'Medak', 'Medchal–Malkajgiri', 'Mulugu', 'Nagarkurnool', 'Nalgonda', 'Narayanpet', 'Nirmal', 'Nizamabad', 'Peddapalli', 'Rajanna Sircilla', 'Rangareddy', 'Sangareddy', 'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 'Warangal Rural', 'Warangal Urban', 'Yadadri Bhuvanagiri'
+                    ]).map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </form>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">Password</label>
-              <input
-                type="text"
-                value={formData.password}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white"
-                required
-              />
+            <div className="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-end gap-4 mt-auto">
+              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 text-lg text-slate-300 hover:text-white font-medium">Cancel</button>
+              <button type="submit" form="reporterForm" className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-lg font-bold shadow-lg shadow-blue-900/20 whitespace-nowrap">Save Reporter</button>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">State</label>
-              <select
-                value={formData.state}
-                onChange={e => setFormData({ ...formData, state: e.target.value, district: '' })}
-                className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white"
-              >
-                <option value="Andhra Pradesh">Andhra Pradesh</option>
-                <option value="Telangana">Telangana</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">District Assignment</label>
-              <select
-                value={formData.district}
-                onChange={e => setFormData({ ...formData, district: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-white"
-                required
-              >
-                <option value="">Select District</option>
-                {(formData.state === 'Andhra Pradesh' ? [
-                  'Anantapur', 'Chittoor', 'East Godavari', 'Guntur', 'Kadapa', 'Krishna', 'Kurnool', 'Nellore', 'Prakasam', 'Srikakulam', 'Visakhapatnam', 'Vizianagaram', 'West Godavari'
-                ] : [
-                  'Adilabad', 'Bhadradri Kothagudem', 'Hyderabad', 'Jagtial', 'Jangaon', 'Jayashankar Bhupalpally', 'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar', 'Khammam', 'Kumuram Bheem Asifabad', 'Mahabubabad', 'Mahabubnagar', 'Mancherial', 'Medak', 'Medchal–Malkajgiri', 'Mulugu', 'Nagarkurnool', 'Nalgonda', 'Narayanpet', 'Nirmal', 'Nizamabad', 'Peddapalli', 'Rajanna Sircilla', 'Rangareddy', 'Sangareddy', 'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 'Warangal Rural', 'Warangal Urban', 'Yadadri Bhuvanagiri'
-                ]).map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div className="md:col-span-2 flex justify-end gap-3 mt-4">
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-slate-400">Cancel</button>
-              <button type="submit" className="bg-yellow-500 text-slate-900 px-6 py-2 rounded font-bold">Save Reporter</button>
-            </div>
-          </form>
+          </div>
         </div>
       )}
 
-      <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
-        <table className="w-full text-left">
-          <thead className="bg-slate-900/50 text-slate-400 text-xs uppercase font-bold tracking-wider">
-            <tr>
-              <th className="px-6 py-4">Name</th>
-              <th className="px-6 py-4">Email / Password</th>
-              <th className="px-6 py-4">Location</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700">
-            {reporters.map(rep => (
-              <tr key={rep.id} className="hover:bg-slate-700/30 transition-colors">
-                <td className="px-6 py-4 font-medium text-white">{rep.name}</td>
-                <td className="px-6 py-4 italic text-slate-400">{rep.email}<br /><span className="text-xs">{rep.password}</span></td>
-                <td className="px-6 py-4">
-                  <span className="text-xs text-slate-500">{rep.state}</span><br />
-                  <span className="text-sm text-yellow-500 font-semibold">{rep.district}</span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-3">
-                    <button
-                      onClick={() => {
-                        setEditingReporter(rep);
-                        setFormData({
-                          name: rep.name,
-                          email: rep.email,
-                          password: rep.password,
-                          state: rep.state,
-                          district: rep.district
-                        });
-                        setShowForm(true);
-                      }}
-                      className="text-blue-400 hover:text-blue-300"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button onClick={() => handleDelete(rep.id)} className="text-red-400 hover:text-red-300">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {reporters.map(rep => (
+          <div key={rep.id} className="bg-slate-800 border border-slate-700/50 rounded-xl p-4 shadow-lg flex flex-col overflow-hidden hover:bg-slate-800/80 transition-colors">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg border border-blue-500/30">
+                  {rep.name?.charAt(0) || 'R'}
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-white font-bold text-lg leading-tight truncate">{rep.name}</h4>
+                  <div className="text-xs text-blue-300/70 font-mono mt-0.5 truncate">{rep.email}</div>
+                </div>
+              </div>
+              <div className="flex gap-2 shrink-0 ml-2">
+                <button
+                  onClick={() => {
+                    setEditingReporter(rep);
+                    setFormData({
+                      name: rep.name,
+                      email: rep.email,
+                      password: rep.password,
+                      state: rep.state,
+                      district: rep.district
+                    });
+                    setShowForm(true);
+                  }}
+                  className="p-2 bg-slate-700/50 hover:bg-slate-600 rounded-lg text-blue-400 hover:text-blue-300 transition-colors" title="Edit"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button onClick={() => handleDelete(rep.id)} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors" title="Delete">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 mt-auto">
+              {/* Location Block */}
+              <div className="bg-slate-900/80 rounded-lg p-3 flex justify-between items-center border border-slate-700/50">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Location</span>
+                  <span className="text-yellow-500 font-semibold text-xs mt-0.5 truncate pr-2">{rep.district}</span>
+                </div>
+                <div className="text-slate-400 text-[11px] shrink-0 text-right">{rep.state}</div>
+              </div>
+
+              {/* Password Block */}
+              <div className="bg-slate-900/80 rounded-lg p-3 flex justify-between items-center border border-slate-700/50">
+                <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider shrink-0 mr-3">Password</div>
+                <div className="font-mono text-emerald-400 text-sm select-all truncate text-right font-medium" title={rep.password}>{rep.password}</div>
+              </div>
+            </div>
+          </div>
+        ))}
         {reporters.length === 0 && !loading && (
-          <div className="p-8 text-center text-slate-500">No district reporters found.</div>
+          <div className="col-span-full p-12 text-center text-slate-400 bg-slate-800 rounded-xl border border-slate-600 flex flex-col items-center justify-center">
+            <div className="text-lg font-medium">No district reporters found.</div>
+          </div>
         )}
       </div>
     </div>
@@ -1477,9 +1508,9 @@ const NewsForm = ({
   });
 
   const newsTypes: NewsType[] = [
-    'Political', 'AndhraPradesh', 'Telangana', 'National', 'International', 
-    'Crime', 'Education', 'Jobs', 'Classifieds', 'Live', 
-    'Business', 'Sports', 'Agriculture', 'Marriage', 'RealEstate', 
+    'Political', 'AndhraPradesh', 'Telangana', 'National', 'International',
+    'Crime', 'Education', 'Jobs', 'Classifieds', 'Live',
+    'Business', 'Sports', 'Agriculture', 'Marriage', 'RealEstate',
     'Bhakthi', 'Health', 'Social', 'Accident', 'Weather', 'Others'
   ];
   const [uploading, setUploading] = useState(false);
@@ -3985,7 +4016,7 @@ export default function App() {
               <ShortsManager shorts={shorts} setShorts={setShorts} onViewItem={setViewingMedia} user={adminUser} />
             )}
 
-            
+
             {activeTab === 'super_admins' && adminUser?.email === 'syncai@gmail.com' && (
               <SuperAdminsManager adminEmail={adminUser.email} />
             )}

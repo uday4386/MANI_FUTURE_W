@@ -363,6 +363,39 @@ export const api = {
         return await res.json();
     },
 
+    
+    // Super Admins
+    async getSuperAdmins(email: string) {
+        const res = await fetch(`${API_URL}/admin/super_admins`, { headers: { 'x-requester-email': email } });
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Failed to fetch super admins'));
+        return res.json();
+    },
+    async createSuperAdmin(data: any, email: string) {
+        const res = await fetch(`${API_URL}/admin/super_admins`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-requester-email': email },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Creation failed'));
+        return res.json();
+    },
+    async updateSuperAdmin(id: string, updates: any, email: string) {
+        const res = await fetch(`${API_URL}/admin/super_admins/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'x-requester-email': email },
+            body: JSON.stringify(updates)
+        });
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Update failed'));
+        return res.json();
+    },
+    async deleteSuperAdmin(id: string, email: string) {
+        const res = await fetch(`${API_URL}/admin/super_admins/${id}`, { 
+            method: 'DELETE',
+            headers: { 'x-requester-email': email }
+        });
+        if (!res.ok) throw new Error(await getErrorMessage(res, 'Deletion failed'));
+    },
+
     async getReporters() {
         const res = await fetch(`${API_URL}/admin/reporters`);
         if (!res.ok) throw new Error('Failed to fetch reporters');

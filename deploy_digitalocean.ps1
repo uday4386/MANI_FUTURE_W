@@ -126,6 +126,11 @@ pm2 save
 echo "==> Setting permissions"
 sudo chown -R root:www-data "[[RemoteDir]]"
 sudo chmod -R 755 "[[RemoteDir]]"
+sudo chmod -R 777 "[[RemoteDir]]/backend_api/uploads" || true
+sudo touch "[[RemoteDir]]/backend_api/crash_report.log"
+sudo chmod 777 "[[RemoteDir]]/backend_api/crash_report.log"
+
+
 
 echo "==> Updating Nginx configuration"
 NGINX_CONF="[[RemoteDir]]/nginx_samanyudutv.in.conf"

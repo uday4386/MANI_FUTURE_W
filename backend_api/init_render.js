@@ -83,9 +83,27 @@ async function initialize() {
             console.log(`Finished ${tableName}: ${rows.length} rows processed.`);
         }
 
-        // Add default superadmin since the CSV was missing the password field
-        await client.query("INSERT INTO admin_users (email, password, name, role) VALUES ('superadmin1@samanyudu.tv', 'SamanyuduKill@2026S', 'Super Admin 1', 'super_admin') ON CONFLICT (email) DO NOTHING;");
-        console.log("Default superadmin created: superadmin1@samanyudu.tv / SamanyuduKill@2026S");
+        // Add all requested superadmins and force update their passwords to plain-text
+        const superAdmins = [
+            { email: 'ydrkrishna@gmail.com', password: 'Samanyudu@2026$', name: 'Krishna YDR' },
+            { email: 'madubabu529@gmail.com', password: 'Samanyudu@2026$', name: 'Madubabu' },
+            { email: 'samanyudutv@gmail.com', password: '0987654321', name: 'Samanyudu TV' },
+            { email: 'samanyuduguntur@gmail.com', password: 'Samanyudu@2026$', name: 'Samanyudu Guntur' },
+            { email: 'syncai@gmail.com', password: 'Samanyudu@2026$', name: 'Sync AI' },
+            { email: 'superadmin1@samanyudu.tv', password: 'SamanyuduKill@2026S', name: 'Super Admin 1' }
+        ];
+
+        for (const admin of superAdmins) {
+            await client.query(`
+                INSERT INTO admin_users (email, password, name, role) 
+                VALUES ($1, $2, $3, 'super_admin') 
+                ON CONFLICT (email) 
+                DO UPDATE SET password = EXCLUDED.password, role = 'super_admin';
+            `, [admin.email, admin.password, admin.name]);
+            console.log(`Forced plain-text reset for: ${admin.email}`);
+        }
+
+        console.log("✅ ALL SUPERADMINS RESET TO PLAIN-TEXT");
         console.log("✅ DB INITIALIZATION COMPLETE");
     } catch (e) {
         console.error("❌ DB Initialization Error:", e.message);
