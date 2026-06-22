@@ -696,9 +696,10 @@ app.post('/api/auth/login-otp', async (req, res) => {
 app.post('/api/auth/login-email', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const normalizedEmail = String(email || '').toLowerCase().trim();
         const passTrimmed = String(password || '').trim();
 
-        const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
 
         if (rows.length === 0 || !(await bcrypt.compare(passTrimmed, rows[0].password))) {
             return res.status(401).json({ error: 'Invalid email or password' });
@@ -2139,8 +2140,9 @@ app.post('/api/auth/verify-email', async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) return res.status(400).json({ error: 'Email is required' });
+        const normalizedEmail = String(email).toLowerCase().trim();
 
-        const { rows } = await db.query('SELECT 1 FROM users WHERE email = $1', [email]);
+        const { rows } = await db.query('SELECT 1 FROM users WHERE email = $1', [normalizedEmail]);
         if (rows.length === 0) {
             return res.status(404).json({ error: 'No account found with this email' });
         }
