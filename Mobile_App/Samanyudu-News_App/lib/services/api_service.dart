@@ -17,7 +17,7 @@ class ApiService {
     return host == 'localhost' || host == '127.0.0.1';
   }
 
-  static bool get _isLocal => _forceLocal || _isRunningOnLocalWeb || kDebugMode;
+  static bool get _isLocal => _forceLocal;
 
   static String get baseUrl {
     if (_isLocal) {

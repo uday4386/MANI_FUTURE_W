@@ -107,7 +107,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _translateError(dynamic error) {
-    String errorStr = error.toString();
+    String errorStr = "Authentication failed. Please try again.";
+    try {
+      errorStr = error.toString();
+    } catch (_) {}
     errorStr = errorStr.replaceAll("Exception: ", "");
     if (_isEnglish) return errorStr;
     if (errorStr.toLowerCase().contains("invalid email")) return "దయచేసి సరైన ఇమెయిల్ నమోదు చేయండి";
@@ -140,48 +143,36 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => _isLoading = true);
     try {
-      // 1. Authenticate with Firebase
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final result = await ApiService.loginWithEmail(email, password);
 
-      final firebaseUser = userCredential.user;
-      if (firebaseUser != null) {
-        // 2. Sync with local backend
-        final result = await ApiService.registerWithFirebase(
-          uid: firebaseUser.uid,
-          email: firebaseUser.email!,
-          firstName: firebaseUser.displayName?.split(' ').first ?? 'User',
-          lastName: firebaseUser.displayName?.split(' ').last ?? '',
-        );
-
-        if (result['success'] == true) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_id', result['user']['id'].toString());
-          await prefs.setString('user_name', result['user']['name'] ?? 'User');
-          await prefs.setString('user_email', result['user']['email'] ?? email);
-          await _syncUserData(result['user']['id'].toString());
-          
-          if (mounted) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MainNavigation(selectedLanguage: widget.selectedLanguage)));
-          }
-        } else {
-          throw Exception("Failed to sync user with server");
+      if (result['success'] == true) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_id', result['user']['id'].toString());
+        await prefs.setString('user_name', result['user']['name'] ?? 'User');
+        await prefs.setString('user_email', result['user']['email'] ?? email);
+        await _syncUserData(result['user']['id'].toString());
+        
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MainNavigation(selectedLanguage: widget.selectedLanguage)));
         }
+      } else {
+        throw Exception("Login failed");
       }
-    } on FirebaseAuthException catch (e) {
-      String message = _isEnglish ? "Login failed" : "లాగిన్ విఫలమైంది";
-      if (e.code == 'user-not-found') {
-        message = _isEnglish ? "No account found for this email" : "ఈ ఇమెయిల్‌తో ఎటువంటి ఖాతా కనుగొనబడలేదు";
-      } else if (e.code == 'wrong-password') {
-        message = _isEnglish ? "Incorrect password" : "తప్పు పాస్‌వర్డ్";
-      } else if (e.code == 'invalid-email') {
-        message = _isEnglish ? "Invalid email address" : "చెల్లని ఇమెయిల్ చిరునామా";
-      }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_translateError(e)), backgroundColor: Colors.red));
+      String message = _isEnglish ? "Login failed" : "లాగిన్ విఫలమైంది";
+      try {
+        String eStr = e.toString();
+        if (eStr.contains('user-not-found')) {
+          message = _isEnglish ? "No account found for this email" : "ఈ ఇమెయిల్‌తో ఎటువంటి ఖాతా కనుగొనబడలేదు";
+        } else if (eStr.contains('wrong-password') || eStr.contains('invalid-credential')) {
+          message = _isEnglish ? "Incorrect password" : "తప్పు పాస్‌వర్డ్";
+        } else if (eStr.contains('invalid-email')) {
+          message = _isEnglish ? "Invalid email address" : "చెల్లని ఇమెయిల్ చిరునామా";
+        } else {
+          message = _translateError(e);
+        }
+      } catch (_) {}
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -190,7 +181,23 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleMobilePasswordLogin() async {
      final phone = _phoneController.text.trim();
      final pass = _passwordController.text.trim();
-     if (phone.isEmpty || pass.isEmpty) return;
+     if (phone.isEmpty || pass.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(content: Text(_isEnglish ? "Please fill all fields" : "దయచేసి అన్ని వివరాలను నమోదు చేయండి"), backgroundColor: Colors.red),
+       );
+       return;
+     }
+     // Validate phone is exactly 10 digits
+     final phoneRegex = RegExp(r'^\d{10}$');
+     if (!phoneRegex.hasMatch(phone)) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(
+           content: Text(_isEnglish ? "Please enter a valid 10-digit phone number" : "దయచేసి 10 అంకెల ఫోన్ నంబర్ నమోదు చేయండి"),
+           backgroundColor: Colors.red,
+         ),
+       );
+       return;
+     }
      setState(() => _isLoading = true);
      try {
        final result = await ApiService.loginWithMobile(phone, pass);
@@ -213,7 +220,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleMobileSubmit({bool resend = false, bool isForgotPasswordFlow = false}) async {
     final phone = _phoneController.text.trim();
-    if (phone.isEmpty) return;
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(text["invalidPhone"]!), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    // Validate phone is exactly 10 digits
+    final phoneRegex = RegExp(r'^\d{10}$');
+    if (!phoneRegex.hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isEnglish ? "Please enter a valid 10-digit phone number" : "దయచేసి 10 అంకెల ఫోన్ నంబర్ నమోదు చేయండి"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final success = await ApiService.sendOtp(phone, type: isForgotPasswordFlow ? 'reset' : 'login');
@@ -232,7 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
        await ApiService.syncUserLikes(userId);
        await ApiService.syncSavedItems(userId);
     } catch (e) {
-      debugPrint("Sync Error: $e");
+      try { debugPrint("Sync Error: $e"); } catch (_) {}
     }
   }
 
@@ -370,12 +393,14 @@ class _LoginScreenState extends State<LoginScreen> {
                          return;
                       }
 
-                      // 2. If exists, send Firebase reset email
-                      await FirebaseAuth.instance.sendPasswordResetEmail(email: target);
-                      if (context.mounted) Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(_isEnglish ? "Password reset link sent to your email!" : "పాస్‌వర్డ్ రీసెట్ లింక్ మీ ఇమెయిల్‌కు పంపబడింది!"), backgroundColor: Colors.green)
-                      );
+                      // 2. If exists, send Email OTP
+                      final success = await ApiService.sendEmailOtp(target, type: "reset");
+                      if (success) {
+                        setDialogState(() { otpSent = true; isDialogLoading = false; });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(_isEnglish ? "OTP sent to your email!" : "OTP మీ ఇమెయిల్‌కు పంపబడింది!"), backgroundColor: Colors.green)
+                        );
+                      }
                     } else {
                       final success = await ApiService.sendOtp(target, type: "reset");
                       if (success) {
@@ -383,13 +408,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       }
                     }
                   } else {
-                    // This section now only applies to mobile users
+                    // Handle OTP submission for both mobile and email
                     final otp = otpController.text.trim();
                     final newPass = newPassController.text.trim();
                     if (otp.isEmpty || newPass.isEmpty) throw "Please fill all fields";
                     if (newPass.length < 6) throw text["passLengthWarn"]!;
                     
-                    final success = (await ApiService.resetPasswordMobile(phone: target, otp: otp, newPassword: newPass))['success'] == true;
+                    bool success = false;
+                    if (!_isMobileLogin) {
+                      success = await ApiService.resetPasswordEmail(email: target, otp: otp, newPassword: newPass);
+                    } else {
+                      success = (await ApiService.resetPasswordMobile(phone: target, otp: otp, newPassword: newPass))['success'] == true;
+                    }
                     
                     if (success) {
                       if (context.mounted) Navigator.pop(context);

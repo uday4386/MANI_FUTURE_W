@@ -45,17 +45,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _setStrings() {
+    bool isEmail = widget.initialPhone.contains('@');
     if (_isEnglish) {
       _title = "Edit Profile";
       _nameHint = "Your name";
-      _phoneHint = "Phone number";
+      _phoneHint = isEmail ? "Email address" : "Phone number";
       _save = "Save";
       _cancel = "Cancel";
       _savedMsg = "Profile updated";
     } else {
       _title = "ప్రొఫైల్ ఎడిట్";
       _nameHint = "మీ పేరు";
-      _phoneHint = "ఫోన్ నంబర్";
+      _phoneHint = isEmail ? "ఇమెయిల్ అడ్రస్" : "ఫోన్ నంబర్";
       _save = "సేవ్";
       _cancel = "రద్దు";
       _savedMsg = "ప్రొఫైల్ నవీకరించబడింది";
@@ -139,19 +140,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                style: TextStyle(color: textColor),
+                readOnly: true,
+                style: TextStyle(color: hintColor), // Use hintColor to indicate it's not editable
                 decoration: InputDecoration(
                   labelText: _phoneHint,
                   labelStyle: TextStyle(color: hintColor, fontSize: 14 * scale),
                   filled: true,
-                  fillColor: cardColor,
+                  fillColor: isDark ? Colors.black12 : Colors.grey[200], // Darker/grey background
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: isDark ? BorderSide.none : const BorderSide(color: Colors.black12),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: accentYellow, width: 1.5),
+                    borderSide: isDark ? BorderSide.none : const BorderSide(color: Colors.black12),
                   ),
                 ),
               ),

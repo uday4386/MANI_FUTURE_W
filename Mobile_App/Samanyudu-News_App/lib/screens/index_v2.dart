@@ -1595,8 +1595,12 @@ class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserve
             ],
           )
         ),
-      ),
     );
+
+    if (isExpanded) {
+      return Expanded(child: card);
+    }
+    return card;
   }
 
   void _navigateToCategory(String categoryId, String title, IconData icon) async {

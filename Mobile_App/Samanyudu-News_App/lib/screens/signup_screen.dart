@@ -6,59 +6,9 @@ import '../services/api_service.dart';
 import 'location_screen.dart';
 import '../widgets/app_logo.dart';
 
-class PasswordValidationResult {
-  final bool hasMinLength;
-  final bool hasMaxLength;
-  final bool hasUppercase;
-  final bool hasLowercase;
-  final bool hasDigit;
-  final bool hasSpecialChar;
-  final bool hasNoSpaces;
-  final bool isNotSameAsUserDetails;
-  final bool isNotCommonPassword;
-  final bool matchesConfirm;
 
-  PasswordValidationResult({
-    required this.hasMinLength,
-    required this.hasMaxLength,
-    required this.hasUppercase,
-    required this.hasLowercase,
-    required this.hasDigit,
-    required this.hasSpecialChar,
-    required this.hasNoSpaces,
-    required this.isNotSameAsUserDetails,
-    required this.isNotCommonPassword,
-    required this.matchesConfirm,
-  });
 
-  bool get isValid =>
-      hasMinLength &&
-      hasMaxLength &&
-      hasUppercase &&
-      hasLowercase &&
-      hasDigit &&
-      hasSpecialChar &&
-      hasNoSpaces &&
-      isNotSameAsUserDetails &&
-      isNotCommonPassword &&
-      matchesConfirm;
-
-  String get strength {
-    int score = 0;
-    if (hasMinLength) score++;
-    if (hasUppercase) score++;
-    if (hasLowercase) score++;
-    if (hasDigit) score++;
-    if (hasSpecialChar) score++;
-    if (hasNoSpaces) score++;
-    if (isNotSameAsUserDetails) score++;
-    if (isNotCommonPassword) score++;
-
-    if (score < 4) return "Weak";
-    if (score < 7) return "Medium";
-    return "Strong";
-  }
-}
+enum _PasswordFieldType { password, confirm }
 
 class SignupScreen extends StatefulWidget {
   final String selectedLanguage;
@@ -81,26 +31,38 @@ class _SignupScreenState extends State<SignupScreen> {
   
   bool _isLoading = false;
   bool _otpSent = false;
-  bool _isObscure = true;
+  bool _isObscurePassword = true;
+  bool _isObscureConfirm = true;
   late Map<String, String> text;
-  PasswordValidationResult? _validationResult;
+
+  // Per-field error tracking for highlighting missing fields
+  bool _firstNameError = false;
+  bool _lastNameError = false;
+  bool _phoneError = false;
+  bool _emailError = false;
+  bool _passwordError = false;
+  bool _confirmPasswordError = false;
 
   bool get _isEnglish =>
       widget.selectedLanguage.toLowerCase().contains("english") ||
       widget.selectedLanguage.contains("ఇంగ్లీష్");
 
+  void _onPasswordChanged() {
+    setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
     _loadTranslations();
-    _passwordController.addListener(_validatePasswordRealtime);
-    _confirmPasswordController.addListener(_validatePasswordRealtime);
+    _passwordController.addListener(_onPasswordChanged);
+    _confirmPasswordController.addListener(_onPasswordChanged);
   }
 
   @override
   void dispose() {
-    _passwordController.removeListener(_validatePasswordRealtime);
-    _confirmPasswordController.removeListener(_validatePasswordRealtime);
+    _passwordController.removeListener(_onPasswordChanged);
+    _confirmPasswordController.removeListener(_onPasswordChanged);
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
@@ -111,160 +73,7 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _validatePasswordRealtime() {
-    final password = _passwordController.text;
-    final confirm = _confirmPasswordController.text;
 
-    if (password.isEmpty) {
-      setState(() {
-        _validationResult = null;
-      });
-      return;
-    }
-
-    final hasMinLength = password.length >= 8;
-    final hasMaxLength = password.length <= 20;
-    final hasUppercase = password.contains(RegExp(r'[A-Z]'));
-    final hasLowercase = password.contains(RegExp(r'[a-z]'));
-    final hasDigit = password.contains(RegExp(r'[0-9]'));
-    final hasSpecialChar = password.contains(RegExp(r'[@#\$%\^&\*!\?_\-]'));
-    final hasNoSpaces = !password.contains(' ');
-
-    // User details check
-    final firstName = _firstNameController.text.trim().toLowerCase();
-    final lastName = _lastNameController.text.trim().toLowerCase();
-    final email = _emailController.text.trim().toLowerCase();
-    final phone = _phoneController.text.trim();
-
-    final passLower = password.toLowerCase();
-    bool isNotSameAsUserDetails = true;
-    if (firstName.isNotEmpty && passLower == firstName) isNotSameAsUserDetails = false;
-    if (lastName.isNotEmpty && passLower == lastName) isNotSameAsUserDetails = false;
-    if (firstName.isNotEmpty && lastName.isNotEmpty && passLower == "$firstName $lastName") isNotSameAsUserDetails = false;
-    if (email.isNotEmpty && passLower == email) isNotSameAsUserDetails = false;
-    if (phone.isNotEmpty && password == phone) isNotSameAsUserDetails = false;
-
-    // Common passwords check
-    final commonPasswords = ['password', '123456', '12345678', 'qwerty', 'admin', 'samanyudu'];
-    final isNotCommonPassword = !commonPasswords.contains(passLower);
-
-    final matchesConfirm = password == confirm && confirm.isNotEmpty;
-
-    setState(() {
-      _validationResult = PasswordValidationResult(
-        hasMinLength: hasMinLength,
-        hasMaxLength: hasMaxLength,
-        hasUppercase: hasUppercase,
-        hasLowercase: hasLowercase,
-        hasDigit: hasDigit,
-        hasSpecialChar: hasSpecialChar,
-        hasNoSpaces: hasNoSpaces,
-        isNotSameAsUserDetails: isNotSameAsUserDetails,
-        isNotCommonPassword: isNotCommonPassword,
-        matchesConfirm: matchesConfirm,
-      );
-    });
-  }
-
-  Widget _buildValidationRow(String ruleText, bool isMet) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isMet ? Colors.green : (isDark ? Colors.white60 : Colors.black54);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        children: [
-          Icon(
-            isMet ? Icons.check_circle : Icons.cancel,
-            color: isMet ? Colors.green : Colors.red,
-            size: 16,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              ruleText,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                decoration: isMet ? TextDecoration.lineThrough : TextDecoration.none,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStrengthIndicator() {
-    if (_validationResult == null) return const SizedBox.shrink();
-    
-    final strength = _validationResult!.strength;
-    Color color;
-    double progress;
-    if (strength == "Weak") {
-      color = Colors.red;
-      progress = 0.33;
-    } else if (strength == "Medium") {
-      color = Colors.orange;
-      progress = 0.66;
-    } else {
-      color = Colors.green;
-      progress = 1.0;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _isEnglish ? "Password Strength:" : "పాస్‌వర్డ్ బలం:",
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              _isEnglish ? strength : (strength == "Weak" ? "బలహీనంగా" : strength == "Medium" ? "మధ్యమంగా" : "బలంగా"),
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey[300],
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
-          ),
-        ),
-        if (!_validationResult!.matchesConfirm && _confirmPasswordController.text.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _isEnglish ? "Passwords must match" : "పాస్‌వర్డ్‌లు సరిపోలాలి",
-                    style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-      ],
-    );
-  }
 
   void _loadTranslations() {
     if (_isEnglish) {
@@ -356,20 +165,34 @@ class _SignupScreenState extends State<SignupScreen> {
     final password = _passwordController.text.trim();
     final confirm = _confirmPasswordController.text.trim();
 
-    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty || password.isEmpty || confirm.isEmpty) {
+    // Per-field validation with error highlighting
+    setState(() {
+      _firstNameError = firstName.isEmpty;
+      _lastNameError = lastName.isEmpty;
+      _emailError = email.isEmpty;
+      _passwordError = password.isEmpty;
+      _confirmPasswordError = confirm.isEmpty;
+    });
+
+    if (firstName.isEmpty || lastName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text["nameRequired"]!), backgroundColor: Colors.red));
+      return;
+    }
+
+    if (email.isEmpty || password.isEmpty || confirm.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text["fillAll"]!), backgroundColor: Colors.red));
       return;
     }
 
-    _validatePasswordRealtime();
-    if (_validationResult == null || !_validationResult!.isValid) {
+    if (password != confirm) {
+      setState(() => _confirmPasswordError = true);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text["passMismatch"]!), backgroundColor: Colors.red));
+      return;
+    }
+
+    if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isEnglish 
-              ? "Please ensure the password meets all security conditions." 
-              : "దయచేసి పాస్‌వర్డ్ అన్ని భద్రతా నిబంధనలను కలిగి ఉండేలా చూసుకోండి."), 
-          backgroundColor: Colors.red
-        ),
+        SnackBar(content: Text(text["passLengthWarn"]!), backgroundColor: Colors.red),
       );
       return;
     }
@@ -382,46 +205,35 @@ class _SignupScreenState extends State<SignupScreen> {
 
     setState(() => _isLoading = true);
     try {
-      // 1. Create account in Firebase
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      final firebaseUser = userCredential.user;
-      if (firebaseUser != null) {
-        // 2. Set display name
-        await firebaseUser.updateDisplayName("$firstName $lastName");
-        
-        // 3. Send verification email
-        await firebaseUser.sendEmailVerification();
-
+      final success = await ApiService.sendEmailOtp(email, type: 'signup');
+      if (success) {
         if (mounted) {
-          setState(() => _otpSent = true);
+          setState(() {
+            _otpSent = true;
+            _isLoading = false;
+            // Clear all field errors on success
+            _firstNameError = false;
+            _lastNameError = false;
+            _emailError = false;
+            _passwordError = false;
+            _confirmPasswordError = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(text["linkSent"]!), 
-                backgroundColor: Colors.green,
-            ),
+            SnackBar(content: Text(_isEnglish ? "OTP sent to your email" : "మీ ఇమెయిల్‌కి OTP పంపబడింది"), backgroundColor: Colors.green),
           );
         }
+      } else {
+        throw Exception("Failed to send OTP. Please try again later.");
       }
-    } on FirebaseAuthException catch (e) {
-      String message = _isEnglish ? "Signup failed" : "సైన్ అప్ విఫలమైంది";
-      if (e.code == 'email-already-in-use') {
-        message = _isEnglish ? "This email is already in use" : "ఈ ఇమెయిల్ ఇప్పటికే వాడుకలో ఉంది";
-      } else if (e.code == 'invalid-email') {
-        message = _isEnglish ? "Invalid email address" : "చెల్లని ఇమెయిల్ చిరునామా";
-      } else if (e.code == 'weak-password') {
-        message = _isEnglish ? "The password provided is too weak" : "పాస్‌వర్డ్ చాలా బలహీనంగా ఉంది";
-      }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
     } catch (e) {
+      setState(() => _isLoading = false);
+      String errorMsg = _isEnglish ? "Signup failed. Please try again." : "సైన్ అప్ విఫలమైంది. దయచేసి మళ్ళీ ప్రయత్నించండి.";
+      try {
+        errorMsg = _translateError(e.toString().replaceAll("Exception: ", ""));
+      } catch (_) {}
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_translateError(e.toString().replaceAll("Exception: ", ""))), backgroundColor: Colors.red),
+        SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -429,26 +241,26 @@ class _SignupScreenState extends State<SignupScreen> {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final email = _emailController.text.trim();
+    final otp = _otpController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (otp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isEnglish ? "Please enter the OTP" : "దయచేసి OTP నమోదు చేయండి"), backgroundColor: Colors.red));
+      return;
+    }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_isEnglish ? "Please enter a password" : "దయచేసి మీ పాస్‌వర్డ్ నమోదు చేయండి"), backgroundColor: Colors.red));
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
-      // 1. Refresh user state from Firebase
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) {
-        throw "Authentication session lost. Please try signing up again.";
-      }
-      
-      await firebaseUser.reload();
-      if (!firebaseUser.emailVerified) {
-        throw text["notVerified"]!;
-      }
-
-      // 2. Sync with local backend
-      final result = await ApiService.registerWithFirebase(
-        uid: firebaseUser.uid,
-        email: email,
+      final result = await ApiService.registerWithEmail(
         firstName: firstName,
         lastName: lastName,
+        email: email,
+        otp: otp,
+        password: password,
       );
 
       if (result['success'] == true) {
@@ -471,9 +283,12 @@ class _SignupScreenState extends State<SignupScreen> {
         }
       }
     } catch (e) {
-      String errorMsg = e.toString();
+      String errorMsg = _isEnglish ? "Signup failed. Please try again." : "సైన్ అప్ విఫలమైంది. దయచేసి మళ్ళీ ప్రయత్నించండి.";
+      try {
+        errorMsg = _translateError(e.toString().replaceAll("Exception: ", ""));
+      } catch (_) {}
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_translateError(errorMsg.replaceAll("Exception: ", ""))), backgroundColor: Colors.red),
+        SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -489,30 +304,73 @@ class _SignupScreenState extends State<SignupScreen> {
     final passwordInput = _passwordController.text.trim();
     final confirmInput = _confirmPasswordController.text.trim();
 
-    if (firstName.isEmpty || lastName.isEmpty || phoneInput.isEmpty || passwordInput.isEmpty || confirmInput.isEmpty) {
+    // Per-field validation with error highlighting
+    bool hasErrors = false;
+    setState(() {
+      _firstNameError = firstName.isEmpty;
+      _lastNameError = lastName.isEmpty;
+      _phoneError = phoneInput.isEmpty;
+      _passwordError = passwordInput.isEmpty;
+      _confirmPasswordError = confirmInput.isEmpty;
+    });
+
+    if (firstName.isEmpty || lastName.isEmpty) {
+      hasErrors = true;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(text["fillAll"]!), backgroundColor: Colors.red),
+        SnackBar(content: Text(text["nameRequired"]!), backgroundColor: Colors.red),
       );
-      return;
     }
 
-    _validatePasswordRealtime();
-    if (_validationResult == null || !_validationResult!.isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isEnglish 
-              ? "Please ensure the password meets all security conditions." 
-              : "దయచేసి పాస్‌వర్డ్ అన్ని భద్రతా నిబంధనలను కలిగి ఉండేలా చూసుకోండి."), 
-          backgroundColor: Colors.red
-        ),
-      );
-      return;
-    }
-
+    // Validate phone is exactly 10 digits
     final phoneRegex = RegExp(r'^\d{10}$');
-    if (!phoneRegex.hasMatch(phoneInput)) {
+    if (phoneInput.isEmpty || !phoneRegex.hasMatch(phoneInput)) {
+      setState(() => _phoneError = true);
+      if (!hasErrors) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEnglish
+                ? "Please enter a valid 10-digit phone number"
+                : "దయచేసి 10 అంకెల ఫోన్ నంబర్ నమోదు చేయండి"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      hasErrors = true;
+    }
+
+    if (passwordInput.isEmpty) {
+      hasErrors = true;
+    }
+
+    // Confirm password must be filled and match
+    if (confirmInput.isEmpty) {
+      setState(() => _confirmPasswordError = true);
+      if (!hasErrors) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEnglish
+                ? "Please enter the confirm password"
+                : "దయచేసి నిర్ధారణ పాస్‌వర్డ్ నమోదు చేయండి"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      hasErrors = true;
+    } else if (passwordInput != confirmInput) {
+      setState(() => _confirmPasswordError = true);
+      if (!hasErrors) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(text["passMismatch"]!), backgroundColor: Colors.red),
+        );
+      }
+      hasErrors = true;
+    }
+
+    if (hasErrors) return;
+
+    if (passwordInput.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(text["invalidPhone"]!), backgroundColor: Colors.red),
+        SnackBar(content: Text(text["passLengthWarn"]!), backgroundColor: Colors.red),
       );
       return;
     }
@@ -524,6 +382,12 @@ class _SignupScreenState extends State<SignupScreen> {
         setState(() {
           _otpSent = true;
           _isLoading = false;
+          // Clear all field errors on success
+          _firstNameError = false;
+          _lastNameError = false;
+          _phoneError = false;
+          _passwordError = false;
+          _confirmPasswordError = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(text["otpSuccess"]!), backgroundColor: Colors.green),
@@ -533,12 +397,16 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      String errorMsg = e.toString();
-      if (errorMsg.contains("FirebaseException")) {
-        errorMsg = "Authentication error occurred. Please try again.";
-      }
+      String errorMsg = "Authentication error occurred. Please try again.";
+      try {
+        errorMsg = e.toString();
+        if (errorMsg.contains("FirebaseException")) {
+          errorMsg = "Authentication error occurred. Please try again.";
+        }
+        errorMsg = _translateError(errorMsg.replaceAll("Exception: ", ""));
+      } catch (_) {}
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_translateError(errorMsg.replaceAll("Exception: ", ""))), backgroundColor: Colors.red),
+        SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
       );
     }
   }
@@ -591,12 +459,16 @@ class _SignupScreenState extends State<SignupScreen> {
         }
       }
     } catch (e) {
-      String errorMsg = e.toString();
-      if (errorMsg.contains("FirebaseException")) {
-        errorMsg = "Authentication error occurred. Please try again.";
-      }
+      String errorMsg = "Authentication error occurred. Please try again.";
+      try {
+        errorMsg = e.toString();
+        if (errorMsg.contains("FirebaseException")) {
+          errorMsg = "Authentication error occurred. Please try again.";
+        }
+        errorMsg = _translateError(errorMsg.replaceAll("Exception: ", ""));
+      } catch (_) {}
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_translateError(errorMsg.replaceAll("Exception: ", ""))), backgroundColor: Colors.red),
+        SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -639,7 +511,7 @@ class _SignupScreenState extends State<SignupScreen> {
         }
       }
     } catch (e) {
-      debugPrint("API Sync Error: $e");
+      try { debugPrint("API Sync Error: $e"); } catch (_) {}
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(text["syncFailed"]!)),
       );
@@ -759,6 +631,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       label: text["firstName"]!,
                       icon: Icons.person,
                       enabled: !_otpSent,
+                      hasError: _firstNameError,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -767,6 +640,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       controller: _lastNameController,
                       label: text["lastName"]!,
                       enabled: !_otpSent,
+                      hasError: _lastNameError,
                     ),
                   ),
                 ],
@@ -781,6 +655,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   icon: Icons.email,
                   enabled: !_otpSent,
                   keyboardType: TextInputType.emailAddress,
+                  hasError: _emailError,
                 ),
               ] else ...[
                 // MOBILE FLOW
@@ -794,6 +669,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(10),
                   ],
+                  hasError: _phoneError,
                 ),
               ],
 
@@ -805,6 +681,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 icon: Icons.lock,
                 isPassword: true,
                 enabled: !_otpSent,
+                hasError: _passwordError,
+                passwordFieldType: _PasswordFieldType.password,
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 4, top: 4),
@@ -820,42 +698,50 @@ class _SignupScreenState extends State<SignupScreen> {
                 icon: Icons.lock_clock,
                 isPassword: true,
                 enabled: !_otpSent,
+                hasError: _confirmPasswordError,
+                passwordFieldType: _PasswordFieldType.confirm,
               ),
-              _buildStrengthIndicator(),
+              if (_confirmPasswordController.text.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, top: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _passwordController.text == _confirmPasswordController.text
+                            ? Icons.check_circle
+                            : Icons.cancel,
+                        color: _passwordController.text == _confirmPasswordController.text
+                            ? Colors.green
+                            : Colors.red,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _passwordController.text == _confirmPasswordController.text
+                            ? (_isEnglish ? "Passwords match" : "పాస్‌వర్డ్‌లు సరిపోలాయి")
+                            : (_isEnglish ? "Passwords do not match" : "పాస్‌వర్డ్‌లు సరిపోలలేదు"),
+                        style: TextStyle(
+                          color: _passwordController.text == _confirmPasswordController.text
+                              ? Colors.green
+                              : Colors.red,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 16),
               
               const SizedBox(height: 16),
 
               if (_otpSent) ...[
-                if (_isMobileSignup) ...[
-                  _buildField(
-                    controller: _otpController,
-                    label: text["otp"]!,
-                    icon: Icons.security,
-                    keyboardType: TextInputType.number,
-                  ),
-                ] else ...[
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.amber.withOpacity(0.5)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.mark_email_unread, color: Colors.amber),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            text["checkEmail"]!,
-                            style: TextStyle(color: textColor, fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                _buildField(
+                  controller: _otpController,
+                  label: text["otp"]!,
+                  icon: Icons.security,
+                  keyboardType: TextInputType.number,
+                ),
+
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _isLoading ? null : (_isMobileSignup ? _handleMobileSignup : _handleEmailSignup),
@@ -866,7 +752,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF0B2A45), strokeWidth: 2))
-                      : Text(_isMobileSignup ? text["verifyOtp"]! : text["iHaveVerified"]!, 
+                      : Text(_isMobileSignup ? text["verifyOtp"]! : (text["verifyOtp"] ?? (_isEnglish ? "Verify & Continue" : "ధృవీకరించి కొనసాగండి")), 
                           style: const TextStyle(color: Color(0xFF0B2A45), fontSize: 18, fontWeight: FontWeight.bold)
                         ),
                 ),
@@ -874,7 +760,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextButton(
                   onPressed: _isLoading ? null : (_isMobileSignup ? _sendMobileOtp : _sendEmailVerification),
                   child: Text(
-                    _isMobileSignup ? text["resendOtp"]! : (_isEnglish ? "Resend OTP" : "OTPని మళ్ళీ పంపండి"),
+                    _isMobileSignup ? text["resendOtp"]! : (_isEnglish ? "Resend OTP" : "OTP మళ్ళీ పంపు"),
                     style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -889,7 +775,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   child: _isLoading
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF0B2A45), strokeWidth: 2))
-                      : Text(text["sendOtp"]!, style: const TextStyle(color: Color(0xFF0B2A45), fontSize: 18, fontWeight: FontWeight.bold)),
+                      : Text(_isMobileSignup ? text["sendOtp"]! : (text["signUp"] ?? (_isEnglish ? "Sign Up" : "సైన్ అప్")), style: const TextStyle(color: Color(0xFF0B2A45), fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               ],
 
@@ -919,13 +805,33 @@ class _SignupScreenState extends State<SignupScreen> {
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
+    bool hasError = false,
+    _PasswordFieldType passwordFieldType = _PasswordFieldType.password,
   }) {
+    // Determine which obscure state to use based on field type
+    final bool isObscured = isPassword
+        ? (passwordFieldType == _PasswordFieldType.confirm ? _isObscureConfirm : _isObscurePassword)
+        : false;
+
     return TextField(
       controller: controller,
       enabled: enabled,
-      obscureText: isPassword && _isObscure,
+      obscureText: isObscured,
       style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
       keyboardType: keyboardType,
+      onChanged: (_) {
+        // Clear error highlight when user starts typing
+        if (hasError) {
+          setState(() {
+            if (controller == _firstNameController) _firstNameError = false;
+            if (controller == _lastNameController) _lastNameError = false;
+            if (controller == _phoneController) _phoneError = false;
+            if (controller == _emailController) _emailError = false;
+            if (controller == _passwordController) _passwordError = false;
+            if (controller == _confirmPasswordController) _confirmPasswordError = false;
+          });
+        }
+      },
       inputFormatters: inputFormatters ?? (keyboardType == TextInputType.phone || label.toLowerCase().contains('phone') || label.contains('ఫోన్')
           ? [
               FilteringTextInputFormatter.digitsOnly,
@@ -934,15 +840,34 @@ class _SignupScreenState extends State<SignupScreen> {
           : null),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54),
+        labelStyle: TextStyle(color: hasError ? Colors.red : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54)),
         filled: true,
         fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF173B60) : Colors.grey[200],
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        prefixIcon: icon != null ? Icon(icon, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54) : null,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: hasError ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: hasError ? const BorderSide(color: Colors.red, width: 2.0) : const BorderSide(color: Color(0xFFFFC107), width: 1.5),
+        ),
+        prefixIcon: icon != null ? Icon(icon, color: hasError ? Colors.red : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54)) : null,
         suffixIcon: isPassword
             ? IconButton(
-                icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54),
-                onPressed: () => setState(() => _isObscure = !_isObscure),
+                icon: Icon(
+                  isObscured ? Icons.visibility : Icons.visibility_off,
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54,
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (passwordFieldType == _PasswordFieldType.confirm) {
+                      _isObscureConfirm = !_isObscureConfirm;
+                    } else {
+                      _isObscurePassword = !_isObscurePassword;
+                    }
+                  });
+                },
               )
             : null,
       ),
