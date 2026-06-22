@@ -24,11 +24,11 @@ services:
       - key: R2_PUBLIC_DOMAIN
         value: cdn.samanyudutv.com
       - key: SMTP_HOST
-        value: smtp-relay.brevo.com
+        value: smtp.gmail.com
       - key: SMTP_PORT
-        value: "587"
+        value: "465"
       - key: SMTP_USER
-        sync: false
+        value: samanyudutvapp@gmail.com
       - key: SMTP_PASS
         sync: false
       - key: SMTP_FROM

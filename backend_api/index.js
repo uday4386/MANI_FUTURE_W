@@ -129,6 +129,7 @@ const transporter = (process.env.SMTP_HOST && process.env.SMTP_PORT && process.e
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT, 10),
         secure: process.env.SMTP_PORT === '465',
+        family: 4, // Force IPv4 (fixes ENETUNREACH on DigitalOcean)
         auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
