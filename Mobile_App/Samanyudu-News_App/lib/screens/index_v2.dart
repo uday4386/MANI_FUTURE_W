@@ -41,7 +41,7 @@ class IndexScreenV2 extends StatefulWidget {
   IndexScreenV2State createState() => IndexScreenV2State();
 }
 
-class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserver {
+class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   void _onThemeChanged() {
     if (mounted) setState(() {});
   }
@@ -87,6 +87,10 @@ class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserve
   int _lastVisitClassifieds = 0;
   int _lastVisitMarriage = 0;
   int _lastVisitLive = 0;
+
+  bool _isLiveActive = false;
+  AnimationController? _glowController;
+  Animation<double>? _glowAnimation;
 
   bool get isEnglish =>
       widget.selectedLanguage.toLowerCase().contains("english") ||
@@ -381,6 +385,21 @@ class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserve
             return false;
           });
 
+          final bool liveActiveNow = _realNews.any((n) {
+            final l = n['live_link']?.toString() ?? '';
+            return n['is_breaking'] == true && l.isNotEmpty;
+          });
+          
+          if (_isLiveActive != liveActiveNow) {
+            _isLiveActive = liveActiveNow;
+            if (_isLiveActive) {
+              _glowController?.repeat(reverse: true);
+            } else {
+              _glowController?.stop();
+              _glowController?.reset();
+            }
+          }
+
           if (classifieds.isNotEmpty) {
             final latest = classifieds.first;
             final latestId = latest['id'].toString();
@@ -414,6 +433,9 @@ class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserve
   @override
   void initState() {
     super.initState();
+    _glowController = AnimationController(vsync: this, duration: const Duration(seconds: 1));
+    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _glowController!, curve: Curves.easeInOut));
+    
     WidgetsBinding.instance.addObserver(this);
     themeNotifier.addListener(_onThemeChanged);
     _initTtsLocal();
@@ -704,6 +726,7 @@ class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserve
 
   @override
   void dispose() {
+    _glowController?.dispose();
     NotificationService.updateCount.removeListener(_onNotificationUpdate);
     WidgetsBinding.instance.removeObserver(this);
     themeNotifier.removeListener(_onThemeChanged);
@@ -1442,16 +1465,51 @@ class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserve
                                 hasNotification: _hasNewMarriage,
                                 onTap: () => _navigateToCategory('marriage', text['marriage'] ?? 'Marriage', Icons.favorite),
                               ),
-                              _buildStatCard(
-                                text["live"] ?? "LIVE", 
-                                "", 
-                                Icons.live_tv, 
-                                Colors.red, 
-                                scale,
-                                textColor: Colors.red,
-                                hasNotification: _hasNewLive,
-                                onTap: () => _navigateToCategory('Live', text['live'] ?? 'LIVE', Icons.live_tv),
-                              ),
+                              if (_isLiveActive && _glowController != null)
+                                Expanded(
+                                  child: AnimatedBuilder(
+                                    animation: _glowAnimation!,
+                                    builder: (context, child) {
+                                      final glowVal = _glowAnimation!.value;
+                                      return Container(
+                                        margin: EdgeInsets.symmetric(horizontal: 4 * scale),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(20 * scale),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.red.withOpacity(0.6 * glowVal),
+                                              blurRadius: 15 * glowVal,
+                                              spreadRadius: 2 * glowVal,
+                                            )
+                                          ]
+                                        ),
+                                        child: child,
+                                      );
+                                    },
+                                    child: _buildStatCard(
+                                      text["live"] ?? "LIVE", 
+                                      "", 
+                                      Icons.live_tv, 
+                                      Colors.red, 
+                                      scale,
+                                      textColor: Colors.red,
+                                      hasNotification: _hasNewLive,
+                                      onTap: () => _navigateToCategory('Live', text['live'] ?? 'LIVE', Icons.live_tv),
+                                      isExpanded: false, // We wrap it in Expanded manually
+                                    ),
+                                  ),
+                                )
+                              else
+                                _buildStatCard(
+                                  text["live"] ?? "LIVE", 
+                                  "", 
+                                  Icons.live_tv, 
+                                  Colors.red, 
+                                  scale,
+                                  textColor: Colors.red,
+                                  hasNotification: _hasNewLive,
+                                  onTap: () => _navigateToCategory('Live', text['live'] ?? 'LIVE', Icons.live_tv),
+                                ),
                             ],
                           ),
                         ),
@@ -1486,12 +1544,11 @@ class IndexScreenV2State extends State<IndexScreenV2> with WidgetsBindingObserve
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color iconColor, double scale, {Color? textColor, VoidCallback? onTap, bool hasNotification = false}) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color iconColor, double scale, {Color? textColor, VoidCallback? onTap, bool hasNotification = false, bool isExpanded = true}) {
     final isDark = themeNotifier.value == ThemeMode.dark || 
                   (themeNotifier.value == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
+    Widget card = GestureDetector(
+      onTap: onTap,
         child: Container(
           margin: EdgeInsets.symmetric(horizontal: 4 * scale),
           padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 10 * scale),
