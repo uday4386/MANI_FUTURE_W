@@ -2214,8 +2214,16 @@ async function init() {
 
 init();
 
-// Keep alive
-setInterval(() => { }, 60000);
+// Memory Leak Cleanup for OTP stores (Runs every 5 minutes)
+setInterval(() => {
+    const now = Date.now();
+    for (const [phone, data] of mobileOtpStore.entries()) {
+        if (data.expires < now) mobileOtpStore.delete(phone);
+    }
+    for (const [email, data] of emailOtpStore.entries()) {
+        if (data.expires < now) emailOtpStore.delete(email);
+    }
+}, 300000);
 
 
 
